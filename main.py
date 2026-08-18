@@ -15,21 +15,24 @@ app.add_middleware(
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+
+# Fallback models priority list
+FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+    "gemma2-9b-it",
+    "mixtral-8x7b-32768"
+]
 
 class ProcessRequest(BaseModel):
     text: str
     instruction: str
-    action: str = "custom"  # custom, extract, clean, classify
+    action: str = "custom"
 
 @app.get("/")
 def health_check():
-    return {
-        "status": "online",
-        "service": "SheetPulse AI Backend",
-        "active_model": GROQ_MODEL,
-        "version": "1.2.0"
-    }
+    return {"status": "online", "service": "SheetPulse AI Backend", "version": "1.3.0"}
 
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
@@ -37,33 +40,42 @@ async def process_cell(req: ProcessRequest):
         return {"success": True, "result": ""}
 
     if not GROQ_API_KEY:
-        raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured on server")
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured")
 
     if req.action == "extract":
-        system_prompt = "You are a precise data extractor. Extract only the requested entity from the input. Output ONLY the extracted text with no explanations, no formatting, and no introductory remarks."
-        user_prompt = f"Target to extract: {req.instruction}\nInput text: {req.text}"
+        system_prompt = "You are a precise data extractor. Output ONLY the extracted text with no extra words."
+        user_prompt = f"Target: {req.instruction}\nInput: {req.text}"
     elif req.action == "clean":
-        system_prompt = "You are a data cleaner. Clean, standardize, and format the input text. Fix capitalization, spaces, typos, and formatting. Output ONLY the cleaned text with no extra comments."
-        user_prompt = f"Input text: {req.text}"
+        system_prompt = "You are a data cleaner. Clean and standardize the input text. Output ONLY the cleaned text."
+        user_prompt = f"Input: {req.text}"
     elif req.action == "classify":
-        system_prompt = f"You are a strict data classifier. Classify the input text into one of these categories: [{req.instruction}]. Output ONLY the category name exactly as matched."
-        user_prompt = f"Input text: {req.text}"
+        system_prompt = f"Classify input into: [{req.instruction}]. Output ONLY the single exact matched label."
+        user_prompt = f"Input: {req.text}"
     else:
-        system_prompt = "You are SheetPulse AI, an ultra-fast spreadsheet AI assistant. Follow the user instruction precisely and output only the direct result with zero conversational filler."
-        user_prompt = f"Instruction: {req.instruction}\nContext/Input: {req.text}"
+        system_prompt = "You are SheetPulse AI. Follow instruction precisely and output only the direct result."
+        user_prompt = f"Instruction: {req.instruction}\nContext: {req.text}"
 
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-        completion = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.2,
-            max_tokens=300
-        )
-        result_text = completion.choices[0].message.content.strip()
-        return {"success": True, "result": result_text}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    client = Groq(api_key=GROQ_API_KEY)
+    
+    last_error = ""
+    for model_name in FALLBACK_MODELS:
+        try:
+            completion = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.2,
+                max_tokens=250
+            )
+            return {
+                "success": True,
+                "result": completion.choices[0].message.content.strip(),
+                "model_used": model_name
+            }
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    raise HTTPException(status_code=500, detail=f"All models failed. Last error: {last_error}")

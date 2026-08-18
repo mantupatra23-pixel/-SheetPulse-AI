@@ -50,6 +50,11 @@
     .hero-glow {
       box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.18), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
     }
+    .drag-selection-box {
+      border: 2px dashed #10b981;
+      background-color: rgba(16, 185, 129, 0.08);
+      transition: height 0.4s ease-in-out;
+    }
   </style>
 </head>
 <body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col">
@@ -113,12 +118,12 @@
       </h1>
 
       <p class="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
-        Don't copy-paste rows into ChatGPT one by one. Get your private API key, connect Google Sheets, and run bulk data extractions across thousands of rows.
+        Don't copy-paste rows into ChatGPT one by one. Drag our formula handle down your column to auto-extract, clean, and enrich hundreds of rows simultaneously.
       </p>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
         <a href="#integration" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all">
-          🔑 Generate Private API Key &mdash; Free
+          🔑 Generate Free API Key
         </a>
         <button onclick="openStarterTemplate()" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all">
           📊 Open Sheets Template
@@ -126,63 +131,116 @@
       </div>
 
       <p class="text-xs text-slate-500 font-mono">
-        ✓ 100 Initial Credits Included &bull; <span class="text-emerald-700 font-bold">No Credit Card Needed</span> &bull; 100% Private Data
+        ✓ 100 Initial Credits Included &bull; <span class="text-emerald-700 font-bold">No Credit Card Needed</span> &bull; Sub-Second Latency
       </p>
 
-      <!-- Spreadsheet Preview -->
+      <!-- LIVE ANIMATED DRAG-DOWN SPREADSHEET PREVIEW -->
       <article class="pt-4 max-w-4xl mx-auto text-left">
-        <div class="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-6 hero-glow">
+        <div class="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-6 hero-glow relative overflow-hidden">
+          
+          <!-- Top Window Header -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 mb-3 gap-2">
             <div class="flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-rose-400"></span>
               <span class="w-3 h-3 rounded-full bg-amber-400"></span>
               <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
-              <span class="ml-2 text-slate-800 font-bold text-xs sm:text-sm">Lead_Enrichment_Pipeline.gsheet</span>
+              <span class="ml-2 text-slate-800 font-bold text-xs sm:text-sm">B2B_Prospect_Enrichment.gsheet</span>
             </div>
-            <button onclick="openStarterTemplate()" class="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200 font-bold text-xs flex items-center gap-1 transition-colors">
-              <span>Make a Copy</span> ↗
-            </button>
+            
+            <div class="flex items-center gap-2">
+              <span id="animStatusBadge" class="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 font-bold text-xs flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="animStatusText">Ready: Dragging Formula Down...</span>
+              </span>
+              <button onclick="restartDragAnimation()" title="Replay live animation demo" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 transition-colors">
+                ↻ Replay
+              </button>
+            </div>
           </div>
 
+          <!-- Formula Bar -->
           <div class="flex items-center gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 text-xs font-mono mb-3">
             <span class="text-emerald-600 font-extrabold text-sm">fx</span>
             <span class="text-slate-800 font-bold">=AI_EXTRACT(A2, "CEO email address")</span>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Table Container with Animated Selection Handle -->
+          <div class="overflow-x-auto relative">
             <table class="w-full text-xs font-mono border-collapse bg-white rounded-lg overflow-hidden border border-slate-200">
               <thead>
                 <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
                   <th class="p-2.5 w-12 text-center border-r border-slate-200">#</th>
                   <th class="p-2.5 text-left border-r border-slate-200 w-1/2">A &bull; Raw Bio / Web Scraped Dump</th>
-                  <th class="p-2.5 text-left text-emerald-800 font-bold bg-emerald-50/60">B &bull; SheetPulse AI Output</th>
-                  <th class="p-2.5 text-center w-20 text-slate-500">Status</th>
+                  <th class="p-2.5 text-left text-emerald-800 font-bold bg-emerald-50/60">B &bull; SheetPulse AI Formula Output</th>
+                  <th class="p-2.5 text-center w-24 text-slate-500">Status</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-slate-700">
+                
+                <!-- Row 2 (Initial Seed Cell) -->
                 <tr class="hover:bg-slate-50/70">
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">2</td>
-                  <td class="p-2.5 border-r border-slate-200">Contact Alex (Founder): alex.h@finscale.io | Book meeting</td>
-                  <td class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold">alex.h@finscale.io</td>
-                  <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Live</td>
+                  <td class="p-2.5 border-r border-slate-200">Contact Alex (Founder): alex.h@finscale.io | Book call</td>
+                  <td id="cell-b2" class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold relative">
+                    alex.h@finscale.io
+                    <!-- Fill Handle Dot -->
+                    <span id="fillHandle" class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-600 border border-white cursor-crosshair z-20"></span>
+                  </td>
+                  <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Ready</td>
                 </tr>
-                <tr class="hover:bg-slate-50/70">
+
+                <!-- Row 3 (Animated Target 1) -->
+                <tr class="hover:bg-slate-50/70 transition-colors">
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">3</td>
                   <td class="p-2.5 border-r border-slate-200">For enterprise inquiries contact ceo-office@retailpro.com</td>
-                  <td class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold">ceo-office@retailpro.com</td>
-                  <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Live</td>
+                  <td id="cell-b3" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
+                    <span class="text-slate-300 font-normal">--</span>
+                  </td>
+                  <td id="status-r3" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
                 </tr>
-                <tr class="hover:bg-slate-50/70">
+
+                <!-- Row 4 (Animated Target 2) -->
+                <tr class="hover:bg-slate-50/70 transition-colors">
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">4</td>
                   <td class="p-2.5 border-r border-slate-200">Sarah Jenkins (Chief Growth) &bull; s.jenkins@hypercloud.dev</td>
-                  <td class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold">s.jenkins@hypercloud.dev</td>
-                  <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Live</td>
+                  <td id="cell-b4" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
+                    <span class="text-slate-300 font-normal">--</span>
+                  </td>
+                  <td id="status-r4" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
                 </tr>
+
+                <!-- Row 5 (Animated Target 3) -->
+                <tr class="hover:bg-slate-50/70 transition-colors">
+                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">5</td>
+                  <td class="p-2.5 border-r border-slate-200">Marcus Vance &bull; VP Outbound &bull; m.vance@novab2b.tech</td>
+                  <td id="cell-b5" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
+                    <span class="text-slate-300 font-normal">--</span>
+                  </td>
+                  <td id="status-r5" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
+                </tr>
+
+                <!-- Row 6 (Animated Target 4) -->
+                <tr class="hover:bg-slate-50/70 transition-colors">
+                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">6</td>
+                  <td class="p-2.5 border-r border-slate-200">Direct founder line: priya.s@growthloop.ai (HQ London)</td>
+                  <td id="cell-b6" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
+                    <span class="text-slate-300 font-normal">--</span>
+                  </td>
+                  <td id="status-r6" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
+                </tr>
+
               </tbody>
             </table>
+
+            <!-- Simulated Mouse Cursor Element -->
+            <div id="simulatedCursor" class="absolute pointer-events-none z-30 transition-all duration-700 ease-out flex items-center gap-1 opacity-0">
+              <svg class="w-5 h-5 text-slate-900 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11.5-5.5 1.5 3.5 6.5-2.5 1.5-3.5-6.5-4 4V2z"/></svg>
+              <span class="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">Drag 4 Rows</span>
+            </div>
           </div>
         </div>
       </article>
+
     </section>
 
     <!-- 1-Click Starter Hub -->
@@ -583,9 +641,10 @@ function callSheetPulse(text, inst, action) {
     &copy; 2026 SheetPulse AI Engine &bull; Autonomous Spreadsheet Infrastructure
   </footer>
 
-  <!-- Scripts -->
+  <!-- Frontend Logic & Animation Scripts -->
   <script>
     let userSecretKey = "YOUR_API_KEY_HERE";
+    let dragAnimTimer = null;
 
     function toggleMobileNav() {
       const menu = document.getElementById('mobileNavMenu');
@@ -609,6 +668,99 @@ function callSheetPulse(text, inst, action) {
     function closeTemplateModal() {
       document.getElementById('templateModal').classList.add('hidden');
     }
+
+    // --- LIVE ANIMATED DRAG-DOWN PREVIEW ENGINE ---
+    const animatedRowData = [
+      { id: 3, result: "ceo-office@retailpro.com", time: "0.18s" },
+      { id: 4, result: "s.jenkins@hypercloud.dev", time: "0.22s" },
+      { id: 5, result: "m.vance@novab2b.tech", time: "0.25s" },
+      { id: 6, result: "priya.s@growthloop.ai", time: "0.31s" }
+    ];
+
+    function runDragDownAnimation() {
+      clearTimeout(dragAnimTimer);
+      const cursor = document.getElementById('simulatedCursor');
+      const handle = document.getElementById('fillHandle');
+      const badge = document.getElementById('animStatusBadge');
+      const badgeText = document.getElementById('animStatusText');
+      const b2 = document.getElementById('cell-b2');
+
+      // Reset Target Rows
+      animatedRowData.forEach(r => {
+        const cell = document.getElementById('cell-b' + r.id);
+        const status = document.getElementById('status-r' + r.id);
+        if (cell) cell.innerHTML = '<span class="text-slate-300 font-normal">--</span>';
+        if (status) {
+          status.innerText = '-';
+          status.className = 'p-2.5 text-center text-slate-400 font-mono text-[11px]';
+        }
+      });
+
+      if (!b2 || !handle) return;
+
+      const rect = handle.getBoundingClientRect();
+      const parentRect = b2.offsetParent.getBoundingClientRect();
+      const startX = handle.offsetLeft;
+      const startY = handle.offsetTop;
+
+      // Phase 1: Cursor Moves to Fill Handle
+      cursor.style.left = (startX - 10) + 'px';
+      cursor.style.top = (startY - 10) + 'px';
+      cursor.style.opacity = '1';
+      badgeText.innerText = 'Hovering Fill Handle...';
+
+      // Phase 2: Dragging Downwards
+      dragAnimTimer = setTimeout(() => {
+        cursor.style.top = (startY + 150) + 'px';
+        badgeText.innerText = 'Dragging Formula across 4 Rows...';
+
+        // Phase 3: Loading States Stagger
+        animatedRowData.forEach((r, idx) => {
+          setTimeout(() => {
+            const cell = document.getElementById('cell-b' + r.id);
+            const status = document.getElementById('status-r' + r.id);
+            if (cell) cell.innerHTML = '<span class="text-emerald-600 animate-pulse">⚡ Computing...</span>';
+            if (status) {
+              status.innerText = 'Running';
+              status.className = 'p-2.5 text-center text-amber-500 font-mono text-[11px] font-bold animate-pulse';
+            }
+          }, 300 + (idx * 200));
+        });
+
+        // Phase 4: Sequential Instant Calculation Reveals
+        animatedRowData.forEach((r, idx) => {
+          setTimeout(() => {
+            const cell = document.getElementById('cell-b' + r.id);
+            const status = document.getElementById('status-r' + r.id);
+            if (cell) cell.innerHTML = '<span class="text-emerald-700 bg-emerald-50/40 px-1 py-0.5 rounded font-bold">' + r.result + '</span>';
+            if (status) {
+              status.innerText = '✓ ' + r.time;
+              status.className = 'p-2.5 text-center text-emerald-600 font-mono text-[11px] font-bold';
+            }
+          }, 1100 + (idx * 250));
+        });
+
+        // Phase 5: Completion Badge & Fade Cursor
+        setTimeout(() => {
+          cursor.style.opacity = '0';
+          badgeText.innerText = '✓ 4 Rows Computed in 0.31s';
+          badge.className = 'text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 font-bold text-xs flex items-center gap-1.5 shadow-sm';
+        }, 2200);
+
+        // Auto-loop restart after 7.5 seconds
+        dragAnimTimer = setTimeout(runDragDownAnimation, 7500);
+
+      }, 800);
+    }
+
+    function restartDragAnimation() {
+      runDragDownAnimation();
+    }
+
+    // Initialize drag-down animation on load
+    window.addEventListener('load', () => {
+      setTimeout(runDragDownAnimation, 600);
+    });
 
     function updateCodeBoxWithKey(key) {
       userSecretKey = key;
@@ -746,7 +898,6 @@ function callSheetPulse(text, inst, action) {
         const data = await res.json();
         box.innerHTML = '✅ <strong>Your Private Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected into Apps Script below!</div>';
         
-        // Auto-Inject the new key into code snippet
         updateCodeBoxWithKey(data.api_key);
       } catch (e) {
         box.innerHTML = 'Error generating key.';
@@ -782,7 +933,6 @@ function callSheetPulse(text, inst, action) {
         const data = await res.json();
         box.innerHTML = '🎉 <strong>Plan Activated!</strong><br><span class="text-slate-700">Your Key:</span><br><code class="text-emerald-700 font-bold bg-white border border-emerald-300 p-1 rounded block my-1">' + data.api_key + '</code>';
         
-        // Auto-Inject into code
         updateCodeBoxWithKey(data.api_key);
       } catch (e) {
         box.innerHTML = '<span class="text-rose-600">Error activating plan.</span>';

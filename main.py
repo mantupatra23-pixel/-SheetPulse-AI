@@ -24,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="25.0.0",
+    version="26.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -265,7 +265,7 @@ def fetch_url_text(url: str) -> str:
         if not clean_url.startswith(('http://', 'https://')):
             clean_url = 'https://' + clean_url
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
         res = requests.get(clean_url, headers=headers, timeout=8)
         html = res.text
@@ -332,19 +332,20 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= 3 ULTRA-RELIABLE REST AI ENGINES =================
+# ================= 3 HARDENED AI ENGINE ADAPTERS =================
 
-# 1. Cerebras Hardware Cloud (Direct REST)
+# 1. Cerebras Hardware Cloud
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
-        raise ValueError("Cerebras unconfigured")
+        raise ValueError("Cerebras API key not set in environment")
     
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
+    last_err = ""
     for model in ["llama3.1-8b", "llama-3.3-70b", "llama3.1-70b"]:
         try:
             payload = {
@@ -359,21 +360,24 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"Cerebras:{model}"
-        except Exception:
-            continue
-    raise ValueError("Cerebras API execution failed")
+            else:
+                last_err = f"HTTP {resp.status_code}: {resp.text}"
+        except Exception as e:
+            last_err = str(e)
+    raise ValueError(f"Cerebras execution failed -> {last_err}")
 
-# 2. Groq Hardware Cloud (Direct REST)
+# 2. Groq Hardware Cloud
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not key:
-        raise ValueError("Groq unconfigured")
+        raise ValueError("Groq API key not set in environment")
     
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
+    last_err = ""
     for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
         try:
             payload = {
@@ -388,15 +392,17 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"Groq:{model}"
-        except Exception:
-            continue
-    raise ValueError("Groq API execution failed")
+            else:
+                last_err = f"HTTP {resp.status_code}: {resp.text}"
+        except Exception as e:
+            last_err = str(e)
+    raise ValueError(f"Groq execution failed -> {last_err}")
 
-# 3. OpenRouter Cloud Pool (Direct REST)
+# 3. OpenRouter Cloud Pool
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
-        raise ValueError("OpenRouter unconfigured")
+        raise ValueError("OpenRouter API key not set in environment")
     
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -405,6 +411,7 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
         "HTTP-Referer": "https://sheetpulseai.onrender.com",
         "X-Title": "SheetPulse AI"
     }
+    last_err = ""
     for model in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "qwen/qwen-2.5-72b-instruct"]:
         try:
             payload = {
@@ -419,9 +426,11 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"OpenRouter:{model.split('/')[-1]}"
-        except Exception:
-            continue
-    raise ValueError("OpenRouter API execution failed")
+            else:
+                last_err = f"HTTP {resp.status_code}: {resp.text}"
+        except Exception as e:
+            last_err = str(e)
+    raise ValueError(f"OpenRouter execution failed -> {last_err}")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -475,7 +484,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "25.0.0",
+        "version": "26.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -487,28 +496,28 @@ def health_metrics():
         }
     }
 
-# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT ---
+# --- ISOLATED RAW DIAGNOSTIC ENDPOINT ---
 @app.get("/api/v1/debug/providers")
 def debug_individual_providers():
     test_sys = "Output ONLY the word 'OK'."
     test_usr = "Status check."
     results = {}
 
-    # Test Cerebras Isolated
+    # Test Cerebras
     try:
         out, prov = _sync_cerebras_call(test_sys, test_usr)
         results["cerebras"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["cerebras"] = {"status": "failed", "error": str(e)}
 
-    # Test Groq Isolated
+    # Test Groq
     try:
         out, prov = _sync_groq_call(test_sys, test_usr)
         results["groq"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["groq"] = {"status": "failed", "error": str(e)}
 
-    # Test OpenRouter Isolated
+    # Test OpenRouter
     try:
         out, prov = _sync_openrouter_call(test_sys, test_usr)
         results["openrouter"] = {"status": "success", "provider": prov, "output": out}

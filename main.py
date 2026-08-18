@@ -13,7 +13,6 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from groq import Groq
 
 # Optional PostgreSQL Driver (Supabase Pooler)
 try:
@@ -25,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="24.0.0",
+    version="25.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -333,9 +332,9 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= 3 HARDENED AI ENGINE ADAPTERS =================
+# ================= 3 ULTRA-RELIABLE REST AI ENGINES =================
 
-# 1. Cerebras Hardware Cloud (Sub-0.2s)
+# 1. Cerebras Hardware Cloud (Direct REST)
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
@@ -344,46 +343,56 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "Content-Type": "application/json"
     }
-    payload = {
-        "model": "llama3.1-8b",
-        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-        "temperature": 0.05,
-        "max_tokens": 150
-    }
-    resp = requests.post(url, headers=headers, json=payload, timeout=8)
-    if resp.status_code != 200:
-        raise ValueError(f"Cerebras HTTP {resp.status_code}: {resp.text}")
-    res = resp.json()
-    out = clean_output(res["choices"][0]["message"]["content"])
-    if not out:
-        raise ValueError("Empty output from Cerebras")
-    return out, "Cerebras:Llama-3.1-8b"
-
-# 2. Groq Hardware Cloud
-def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
-    if not effective_key:
-        raise ValueError("Groq unconfigured")
-    client = Groq(api_key=effective_key, timeout=8.0)
-    for model_name in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
+    for model in ["llama3.1-8b", "llama-3.3-70b", "llama3.1-70b"]:
         try:
-            res = client.chat.completions.create(
-                model=model_name,
-                messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-                temperature=0.05,
-                max_tokens=150
-            )
-            out = clean_output(res.choices[0].message.content or "")
-            if out:
-                return out, f"Groq:{model_name}"
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=8)
+            if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"Cerebras:{model}"
         except Exception:
             continue
-    raise ValueError("Groq models exhausted")
+    raise ValueError("Cerebras API execution failed")
 
-# 3. OpenRouter Global Cloud Pool
+# 2. Groq Hardware Cloud (Direct REST)
+def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
+    if not key:
+        raise ValueError("Groq unconfigured")
+    
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+    }
+    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=8)
+            if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"Groq:{model}"
+        except Exception:
+            continue
+    raise ValueError("Groq API execution failed")
+
+# 3. OpenRouter Cloud Pool (Direct REST)
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
@@ -394,11 +403,9 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "https://sheetpulseai.onrender.com",
-        "X-Title": "SheetPulse AI",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "X-Title": "SheetPulse AI"
     }
-    models = ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-8b-instruct:free", "qwen/qwen-2.5-72b-instruct"]
-    for model in models:
+    for model in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "qwen/qwen-2.5-72b-instruct"]:
         try:
             payload = {
                 "model": model,
@@ -414,7 +421,7 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                     return out, f"OpenRouter:{model.split('/')[-1]}"
         except Exception:
             continue
-    raise ValueError("OpenRouter models exhausted")
+    raise ValueError("OpenRouter API execution failed")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -468,7 +475,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "24.0.0",
+        "version": "25.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -479,6 +486,36 @@ def health_metrics():
             "openrouter": bool(OPENROUTER_API_KEY)
         }
     }
+
+# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT ---
+@app.get("/api/v1/debug/providers")
+def debug_individual_providers():
+    test_sys = "Output ONLY the word 'OK'."
+    test_usr = "Status check."
+    results = {}
+
+    # Test Cerebras Isolated
+    try:
+        out, prov = _sync_cerebras_call(test_sys, test_usr)
+        results["cerebras"] = {"status": "success", "provider": prov, "output": out}
+    except Exception as e:
+        results["cerebras"] = {"status": "failed", "error": str(e)}
+
+    # Test Groq Isolated
+    try:
+        out, prov = _sync_groq_call(test_sys, test_usr)
+        results["groq"] = {"status": "success", "provider": prov, "output": out}
+    except Exception as e:
+        results["groq"] = {"status": "failed", "error": str(e)}
+
+    # Test OpenRouter Isolated
+    try:
+        out, prov = _sync_openrouter_call(test_sys, test_usr)
+        results["openrouter"] = {"status": "success", "provider": prov, "output": out}
+    except Exception as e:
+        results["openrouter"] = {"status": "failed", "error": str(e)}
+
+    return {"diagnostic_report": results}
 
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
@@ -599,7 +636,7 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
-# --- INTELLIGENT ROUTING & COMPLETE 3-ENGINE EXECUTION ---
+# --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -613,7 +650,6 @@ async def process_cell(req: ProcessRequest):
 
     verify_and_deduct_credits(effective_key, amount=1)
 
-    # 1. Regex UltraFast Extractor
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -621,7 +657,6 @@ async def process_cell(req: ProcessRequest):
             log_request_event(effective_key, "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 2. In-Memory Cache Lookup
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)
@@ -638,7 +673,7 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Priority BYOK Keys (Direct user key routing)
+        # Priority BYOK Keys
         if effective_key.startswith("csk-"):
             try:
                 result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt, effective_key)
@@ -655,17 +690,13 @@ async def process_cell(req: ProcessRequest):
             except Exception:
                 pass
 
-        # Intelligent Dynamic Workload Distribution Across 3 APIs
+        # Action-Based Dynamic Routing
         if not result:
             act = req.action.lower()
-            
-            # Action Route A: Fast Operations -> Cerebras First
             if act in ["clean", "extract"]:
                 pipeline = [_sync_cerebras_call, _sync_groq_call, _sync_openrouter_call]
-            # Action Route B: Reasoning / Fix Formulas -> Groq First
             elif act in ["classify", "fix_formula"]:
                 pipeline = [_sync_groq_call, _sync_cerebras_call, _sync_openrouter_call]
-            # Action Route C: Web Scraper & Long Prompts -> OpenRouter First
             else:
                 pipeline = [_sync_openrouter_call, _sync_groq_call, _sync_cerebras_call]
 
@@ -678,7 +709,7 @@ async def process_cell(req: ProcessRequest):
                     continue
 
         if not result:
-            raise HTTPException(status_code=503, detail="Cluster inference busy. Please retry.")
+            raise HTTPException(status_code=503, detail="All 3 cluster inference engines busy. Please retry.")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

@@ -47,12 +47,12 @@
 </head>
 <body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col">
 
-  <!-- Top Navbar -->
+  <!-- Top Sticky Navbar -->
   <header class="sticky top-0 z-40 w-full border-b border-slate-200/90 bg-white/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
-      <!-- Mobile Menu Open Button -->
-      <button onclick="openDocsDrawer()" aria-label="Open Navigation Index" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold shadow-sm transition-all">
-        <span>☰</span> <span>Index</span>
+      <!-- Dedicated Mobile Drawer Open Button -->
+      <button onclick="openMobileDrawer()" aria-label="Open Formulas Menu" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold shadow-sm transition-all">
+        <span>☰</span> <span>Formulas</span>
       </button>
 
       <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-extrabold shadow-sm">
@@ -73,79 +73,113 @@
     </div>
   </header>
 
-  <!-- Mobile Backdrop Overlay -->
-  <div id="docsBackdrop" onclick="closeDocsDrawer()" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden md:hidden transition-opacity"></div>
-
-  <!-- Page Layout Wrapper -->
-  <div class="max-w-7xl mx-auto flex w-full flex-1">
+  <!-- MOBILE SLIDE-OVER DRAWER (Completely Detached from DOM Flow) -->
+  <div id="mobileDrawer" class="fixed inset-0 z-50 hidden flex">
+    <!-- Backdrop Overlay -->
+    <div onclick="closeMobileDrawer()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
     
-    <!-- Sidebar Navigation Drawer -->
-    <aside id="docsSidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 overflow-y-auto p-5 space-y-6 shadow-2xl transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0 md:static md:z-30 md:h-[calc(100vh-57px)] md:sticky md:top-[57px] md:shadow-none">
-      
-      <!-- Drawer Close Header (Mobile Only) -->
-      <div class="flex items-center justify-between md:hidden border-b border-slate-100 pb-3">
+    <!-- Drawer Menu Box -->
+    <div class="relative w-4/5 max-w-xs bg-white h-full p-5 overflow-y-auto shadow-2xl z-10 flex flex-col space-y-5 border-r border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <span class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
           <span>📑</span> Formulas & Index
         </span>
-        <button onclick="closeDocsDrawer()" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold">
+        <button onclick="closeMobileDrawer()" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold">
           ✕ Close
         </button>
       </div>
 
-      <!-- Live Search Filter -->
+      <input type="text" id="mobileDocSearch" onkeyup="filterDocs('mobileDocSearch', 'mobileLinks')" placeholder="Filter formulas..." class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 font-mono">
+
+      <div id="mobileLinks" class="space-y-4 text-xs">
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">Getting Started</p>
+          <ul class="space-y-1 font-bold text-slate-600">
+            <li><a href="#quickstart" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100">🚀 Overview</a></li>
+            <li><a href="#installation" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100">📦 2-Minute Setup</a></li>
+          </ul>
+        </div>
+
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">AI Formulas</p>
+          <ul class="space-y-1 font-mono font-bold text-slate-700">
+            <li><a href="#fn-sheetpulse" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=SHEETPULSE()</a></li>
+            <li><a href="#fn-clean" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=AI_CLEAN()</a></li>
+            <li><a href="#fn-extract" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=AI_EXTRACT()</a></li>
+            <li><a href="#fn-classify" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=AI_CLASSIFY()</a></li>
+            <li><a href="#fn-fix" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=AI_FIX()</a></li>
+            <li><a href="#fn-scrape" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800">=AI_SCRAPE()</a></li>
+          </ul>
+        </div>
+
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-rose-700 font-mono">Troubleshooting</p>
+          <ul class="space-y-1 font-bold text-slate-600">
+            <li><a href="#common-errors" onclick="closeMobileDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100">⚠️ Error Solutions</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Layout Wrapper -->
+  <div class="max-w-7xl mx-auto flex w-full flex-1">
+    
+    <!-- DESKTOP ONLY SIDEBAR (Hidden on mobile via 'hidden md:block') -->
+    <aside class="hidden md:block w-72 bg-white border-r border-slate-200 overflow-y-auto p-5 space-y-6 shrink-0 sticky top-[57px] h-[calc(100vh-57px)]">
+      
       <div class="relative">
-        <input type="text" id="docSearch" onkeyup="filterDocs()" placeholder="Filter formulas..." class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 font-mono">
+        <input type="text" id="desktopDocSearch" onkeyup="filterDocs('desktopDocSearch', 'desktopLinks')" placeholder="Filter formulas..." class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 font-mono">
       </div>
 
-      <!-- Section: Setup -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">Getting Started</p>
-        <ul class="space-y-1 text-xs font-bold text-slate-600">
-          <li><a href="#quickstart" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">🚀 Overview</a></li>
-          <li><a href="#installation" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">📦 2-Minute Setup</a></li>
-        </ul>
-      </div>
+      <div id="desktopLinks" class="space-y-5">
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">Getting Started</p>
+          <ul class="space-y-1 text-xs font-bold text-slate-600">
+            <li><a href="#quickstart" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">🚀 Overview</a></li>
+            <li><a href="#installation" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">📦 2-Minute Setup</a></li>
+          </ul>
+        </div>
 
-      <!-- Section: Core Formulas -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">AI Functions Catalog</p>
-        <ul class="space-y-1 text-xs font-mono font-bold text-slate-700">
-          <li><a href="#fn-sheetpulse" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=SHEETPULSE()</a></li>
-          <li><a href="#fn-clean" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_CLEAN()</a></li>
-          <li><a href="#fn-extract" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_EXTRACT()</a></li>
-          <li><a href="#fn-classify" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_CLASSIFY()</a></li>
-          <li><a href="#fn-fix" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_FIX()</a></li>
-          <li><a href="#fn-scrape" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_SCRAPE()</a></li>
-        </ul>
-      </div>
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">AI Functions Catalog</p>
+          <ul class="space-y-1 text-xs font-mono font-bold text-slate-700">
+            <li><a href="#fn-sheetpulse" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=SHEETPULSE()</a></li>
+            <li><a href="#fn-clean" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_CLEAN()</a></li>
+            <li><a href="#fn-extract" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_EXTRACT()</a></li>
+            <li><a href="#fn-classify" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_CLASSIFY()</a></li>
+            <li><a href="#fn-fix" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_FIX()</a></li>
+            <li><a href="#fn-scrape" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_SCRAPE()</a></li>
+          </ul>
+        </div>
 
-      <!-- Section: Troubleshooting -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 font-mono">Troubleshooting</p>
-        <ul class="space-y-1 text-xs font-bold text-slate-600">
-          <li><a href="#common-errors" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">⚠️ Error Solutions</a></li>
-        </ul>
+        <div class="space-y-1.5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 font-mono">Support</p>
+          <ul class="space-y-1 text-xs font-bold text-slate-600">
+            <li><a href="#common-errors" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">⚠️ Error Solutions</a></li>
+          </ul>
+        </div>
       </div>
 
     </aside>
 
     <!-- Main Full-Width Documentation Content -->
-    <main class="flex-1 w-full p-4 sm:p-8 md:p-12 space-y-12 max-w-4xl">
+    <main class="flex-1 w-full min-w-0 p-4 sm:p-8 md:p-12 space-y-12 max-w-4xl">
       
       <!-- Overview Section -->
       <section id="quickstart" class="space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-          Documentation &bull; Production v10.5
+          Documentation &bull; Production v10.6
         </div>
-        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">SheetPulse AI Documentation</h1>
-        <p class="text-slate-600 text-sm leading-relaxed font-medium">
+        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900">SheetPulse AI Documentation</h1>
+        <p class="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium">
           SheetPulse AI connects your Google Sheets cells directly to autonomous AI models. Process thousands of rows without leaving your spreadsheet.
         </p>
 
         <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-2">
           <p class="text-xs font-bold text-emerald-700 font-mono">⚡ Core Engine Highlights</p>
           <ul class="text-xs text-slate-600 space-y-1 font-medium">
-            <li>&bull; <strong class="text-slate-900">Sub-Second Execution:</strong> Hardware-accelerated cloud cluster processes cells in &lt;0.8s.</li>
+            <li>&bull; <strong class="text-slate-900">Sub-Second Speed:</strong> Hardware-accelerated cloud cluster processes cells in &lt;0.8s.</li>
             <li>&bull; <strong class="text-slate-900">In-Memory Cache:</strong> Identical requests evaluate in 0.001s without burning API tokens.</li>
           </ul>
         </div>
@@ -155,7 +189,7 @@
       <section id="installation" class="space-y-4 pt-6 border-t border-slate-200">
         <div>
           <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 font-mono">Quick Setup</span>
-          <h2 class="text-2xl font-extrabold text-slate-900 mt-1">2-Minute Installation Guide</h2>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">2-Minute Installation Guide</h2>
         </div>
 
         <div class="space-y-3 text-xs text-slate-700 font-medium">
@@ -180,19 +214,19 @@
       <section id="functions-catalog" class="space-y-8 pt-6 border-t border-slate-200">
         <div>
           <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 font-mono">Formulas</span>
-          <h2 class="text-2xl font-extrabold text-slate-900 mt-1">Complete Formulas Reference</h2>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">Complete Formulas Reference</h2>
         </div>
 
         <!-- SHEETPULSE -->
-        <article id="fn-sheetpulse" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-sheetpulse" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=SHEETPULSE(cell, prompt)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800 font-bold">General AI</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Executes custom natural language instructions on cell data.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=SHEETPULSE(A2, "Write 4-word SaaS hook")</code>
-            <button onclick="copySnippet('=SHEETPULSE(A2, &quot;Write 4-word SaaS hook&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=SHEETPULSE(A2, "Write 4-word hook")</code>
+            <button onclick="copySnippet('=SHEETPULSE(A2, &quot;Write 4-word SaaS hook&quot;)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-xs font-mono border border-slate-200 rounded-lg overflow-hidden bg-white">
@@ -203,67 +237,67 @@
         </article>
 
         <!-- AI_CLEAN -->
-        <article id="fn-clean" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-clean" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_CLEAN(cell)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-800 font-bold">Sanitizer</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Standardizes casing, trims broken whitespace, and formats messy data.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=AI_CLEAN(A2)</code>
-            <button onclick="copySnippet('=AI_CLEAN(A2)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=AI_CLEAN(A2)</code>
+            <button onclick="copySnippet('=AI_CLEAN(A2)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
         </article>
 
         <!-- AI_EXTRACT -->
-        <article id="fn-extract" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-extract" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_EXTRACT(cell, target)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-teal-100 text-teal-800 font-bold">Extractor</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Extracts specific entities (emails, phone numbers, prices) with regex acceleration.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=AI_EXTRACT(A2, "CEO email address")</code>
-            <button onclick="copySnippet('=AI_EXTRACT(A2, &quot;CEO email address&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=AI_EXTRACT(A2, "CEO email address")</code>
+            <button onclick="copySnippet('=AI_EXTRACT(A2, &quot;CEO email address&quot;)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
         </article>
 
         <!-- AI_CLASSIFY -->
-        <article id="fn-classify" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-classify" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_CLASSIFY(cell, tags)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-violet-100 text-violet-800 font-bold">Classifier</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Assigns text strictly into one tag from your comma-separated list.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=AI_CLASSIFY(A2, "Complaint, Bug, Refund")</code>
-            <button onclick="copySnippet('=AI_CLASSIFY(A2, &quot;Complaint, Bug, Refund&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=AI_CLASSIFY(A2, "Complaint, Bug, Refund")</code>
+            <button onclick="copySnippet('=AI_CLASSIFY(A2, &quot;Complaint, Bug, Refund&quot;)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
         </article>
 
         <!-- AI_FIX -->
-        <article id="fn-fix" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-fix" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_FIX(broken_formula, goal)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-bold">Repair</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Analyzes and fixes broken Google Sheets formulas.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=AI_FIX("=VLOOKUP(A2, B:C, 3, FALSE)", "Fix 2-column lookup")</code>
-            <button onclick="copySnippet('=AI_FIX(&quot;=VLOOKUP(A2, B:C, 3, FALSE)&quot;, &quot;Fix 2-column lookup&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=AI_FIX("=VLOOKUP(A2, B:C, 3, FALSE)", "Fix 2-column lookup")</code>
+            <button onclick="copySnippet('=AI_FIX(&quot;=VLOOKUP(A2, B:C, 3, FALSE)&quot;, &quot;Fix 2-column lookup&quot;)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
         </article>
 
         <!-- AI_SCRAPE -->
-        <article id="fn-scrape" class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
-          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <article id="fn-scrape" class="p-4 sm:p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-3">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-2.5 gap-2">
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_SCRAPE(url, question)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-sky-100 text-sky-800 font-bold">Web Scraper</span>
           </div>
           <p class="text-xs text-slate-600 font-medium">Scrapes target website URL and extracts the required answer.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
-            <code>=AI_SCRAPE("https://stripe.com", "Extract pricing headline")</code>
-            <button onclick="copySnippet('=AI_SCRAPE(&quot;https://stripe.com&quot;, &quot;Extract pricing headline&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
+            <code class="break-all">=AI_SCRAPE("https://stripe.com", "Extract pricing headline")</code>
+            <button onclick="copySnippet('=AI_SCRAPE(&quot;https://stripe.com&quot;, &quot;Extract pricing headline&quot;)')" class="shrink-0 text-[10px] text-white bg-slate-800 px-2.5 py-1 rounded hover:bg-slate-700 ml-2">Copy</button>
           </div>
         </article>
       </section>
@@ -298,25 +332,19 @@
 
   <!-- Drawer Control Scripts -->
   <script>
-    function openDocsDrawer() {
-      const sb = document.getElementById('docsSidebar');
-      const bd = document.getElementById('docsBackdrop');
-      sb.classList.remove('-translate-x-full');
-      bd.classList.remove('hidden');
+    function openMobileDrawer() {
+      document.getElementById('mobileDrawer').classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
     }
 
-    function closeDocsDrawer() {
-      const sb = document.getElementById('docsSidebar');
-      const bd = document.getElementById('docsBackdrop');
-      sb.classList.add('-translate-x-full');
-      bd.classList.add('hidden');
+    function closeMobileDrawer() {
+      document.getElementById('mobileDrawer').classList.add('hidden');
       document.body.classList.remove('overflow-hidden');
     }
 
-    function filterDocs() {
-      const q = document.getElementById('docSearch').value.toLowerCase();
-      const links = document.querySelectorAll('#docsSidebar ul li a');
+    function filterDocs(inputId, listContainerId) {
+      const q = document.getElementById(inputId).value.toLowerCase();
+      const links = document.querySelectorAll('#' + listContainerId + ' a');
       links.forEach(l => {
         const txt = l.textContent.toLowerCase();
         l.parentElement.style.display = txt.includes(q) ? 'block' : 'none';

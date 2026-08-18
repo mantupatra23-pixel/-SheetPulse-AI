@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SheetPulse AI Docs &bull; Complete Formula & Setup Guide</title>
+  <title>SheetPulse AI Docs &bull; Formula Reference & Setup Guide</title>
   <meta name="description" content="Comprehensive documentation and formula reference for SheetPulse AI in Google Sheets.">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -37,8 +37,8 @@
     body { background-color: #f1f5f9; }
     .soft-grid-bg {
       background-size: 32px 32px;
-      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.16) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.15) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
     }
     .card-shadow {
       box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
@@ -50,10 +50,11 @@
   <!-- Top Navbar -->
   <header class="sticky top-0 z-40 w-full border-b border-slate-200/90 bg-white/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
-      <!-- Dedicated Mobile Drawer Open Button -->
-      <button onclick="openDocsDrawer()" aria-label="Open Documentation Index" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold shadow-sm">
+      <!-- Mobile Menu Open Button -->
+      <button onclick="openDocsDrawer()" aria-label="Open Navigation Index" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold shadow-sm transition-all">
         <span>☰</span> <span>Index</span>
       </button>
+
       <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-extrabold shadow-sm">
         ⚡
       </div>
@@ -73,26 +74,30 @@
   </header>
 
   <!-- Mobile Backdrop Overlay -->
-  <div id="docsBackdrop" onclick="closeDocsDrawer()" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden md:hidden"></div>
+  <div id="docsBackdrop" onclick="closeDocsDrawer()" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden md:hidden transition-opacity"></div>
 
-  <div class="max-w-7xl mx-auto flex w-full flex-1 relative">
+  <!-- Page Layout Wrapper -->
+  <div class="max-w-7xl mx-auto flex w-full flex-1">
     
-    <!-- Sidebar Drawer (Hidden off-screen on Mobile, Opens via Button) -->
-    <aside id="docsSidebar" class="fixed md:sticky top-0 md:top-[57px] left-0 z-50 md:z-30 w-72 h-full md:h-[calc(100vh-57px)] bg-white border-r border-slate-200 overflow-y-auto p-5 space-y-6 transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0 shadow-2xl md:shadow-none">
+    <!-- Sidebar Navigation Drawer -->
+    <aside id="docsSidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 overflow-y-auto p-5 space-y-6 shadow-2xl transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0 md:static md:z-30 md:h-[calc(100vh-57px)] md:sticky md:top-[57px] md:shadow-none">
       
+      <!-- Drawer Close Header (Mobile Only) -->
       <div class="flex items-center justify-between md:hidden border-b border-slate-100 pb-3">
         <span class="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-          <span>📑</span> Documentation Index
+          <span>📑</span> Formulas & Index
         </span>
-        <button onclick="closeDocsDrawer()" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-900 font-bold flex items-center justify-center">✕</button>
+        <button onclick="closeDocsDrawer()" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold">
+          ✕ Close
+        </button>
       </div>
 
-      <!-- Search Input -->
+      <!-- Live Search Filter -->
       <div class="relative">
         <input type="text" id="docSearch" onkeyup="filterDocs()" placeholder="Filter formulas..." class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-emerald-500 font-mono">
       </div>
 
-      <!-- Getting Started -->
+      <!-- Section: Setup -->
       <div class="space-y-2">
         <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">Getting Started</p>
         <ul class="space-y-1 text-xs font-bold text-slate-600">
@@ -101,9 +106,9 @@
         </ul>
       </div>
 
-      <!-- Core AI Functions -->
+      <!-- Section: Core Formulas -->
       <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">Core AI Functions</p>
+        <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">AI Functions Catalog</p>
         <ul class="space-y-1 text-xs font-mono font-bold text-slate-700">
           <li><a href="#fn-sheetpulse" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=SHEETPULSE()</a></li>
           <li><a href="#fn-clean" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700">=AI_CLEAN()</a></li>
@@ -114,28 +119,36 @@
         </ul>
       </div>
 
-      <!-- Troubleshooting -->
+      <!-- Section: Troubleshooting -->
       <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 font-mono">Support</p>
+        <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 font-mono">Troubleshooting</p>
         <ul class="space-y-1 text-xs font-bold text-slate-600">
-          <li><a href="#common-errors" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">⚠️ Error Resolutions</a></li>
+          <li><a href="#common-errors" onclick="closeDocsDrawer()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900">⚠️ Error Solutions</a></li>
         </ul>
       </div>
 
     </aside>
 
-    <!-- Main Docs Content Area -->
-    <main class="flex-1 p-4 sm:p-8 md:p-12 space-y-12 max-w-4xl w-full">
+    <!-- Main Full-Width Documentation Content -->
+    <main class="flex-1 w-full p-4 sm:p-8 md:p-12 space-y-12 max-w-4xl">
       
-      <!-- Overview -->
+      <!-- Overview Section -->
       <section id="quickstart" class="space-y-4">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
           Documentation &bull; Production v10.5
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">SheetPulse AI Documentation</h1>
         <p class="text-slate-600 text-sm leading-relaxed font-medium">
-          SheetPulse AI connects your Google Sheet cells directly to neural models. Process thousands of rows without leaving your spreadsheet.
+          SheetPulse AI connects your Google Sheets cells directly to autonomous AI models. Process thousands of rows without leaving your spreadsheet.
         </p>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-2">
+          <p class="text-xs font-bold text-emerald-700 font-mono">⚡ Core Engine Highlights</p>
+          <ul class="text-xs text-slate-600 space-y-1 font-medium">
+            <li>&bull; <strong class="text-slate-900">Sub-Second Execution:</strong> Hardware-accelerated cloud cluster processes cells in &lt;0.8s.</li>
+            <li>&bull; <strong class="text-slate-900">In-Memory Cache:</strong> Identical requests evaluate in 0.001s without burning API tokens.</li>
+          </ul>
+        </div>
       </section>
 
       <!-- 2-Minute Installation -->
@@ -163,7 +176,7 @@
         </div>
       </section>
 
-      <!-- Formulas Reference -->
+      <!-- Formulas Catalog -->
       <section id="functions-catalog" class="space-y-8 pt-6 border-t border-slate-200">
         <div>
           <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 font-mono">Formulas</span>
@@ -208,7 +221,7 @@
             <h3 class="text-sm sm:text-base font-mono font-extrabold text-slate-900">=AI_EXTRACT(cell, target)</h3>
             <span class="px-2.5 py-0.5 text-xs rounded-full bg-teal-100 text-teal-800 font-bold">Extractor</span>
           </div>
-          <p class="text-xs text-slate-600 font-medium">Extracts specific entities (emails, phone numbers, prices) with zero-token regex fast bypass.</p>
+          <p class="text-xs text-slate-600 font-medium">Extracts specific entities (emails, phone numbers, prices) with regex acceleration.</p>
           <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400 flex items-center justify-between">
             <code>=AI_EXTRACT(A2, "CEO email address")</code>
             <button onclick="copySnippet('=AI_EXTRACT(A2, &quot;CEO email address&quot;)')" class="text-[10px] text-white bg-slate-800 px-2 py-1 rounded hover:bg-slate-700">Copy</button>
@@ -283,15 +296,22 @@
     &copy; 2026 SheetPulse AI Docs &bull; Autonomous Spreadsheet Infrastructure
   </footer>
 
+  <!-- Drawer Control Scripts -->
   <script>
     function openDocsDrawer() {
-      document.getElementById('docsSidebar').classList.remove('-translate-x-full');
-      document.getElementById('docsBackdrop').classList.remove('hidden');
+      const sb = document.getElementById('docsSidebar');
+      const bd = document.getElementById('docsBackdrop');
+      sb.classList.remove('-translate-x-full');
+      bd.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
     }
 
     function closeDocsDrawer() {
-      document.getElementById('docsSidebar').classList.add('-translate-x-full');
-      document.getElementById('docsBackdrop').classList.add('hidden');
+      const sb = document.getElementById('docsSidebar');
+      const bd = document.getElementById('docsBackdrop');
+      sb.classList.add('-translate-x-full');
+      bd.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
     }
 
     function filterDocs() {

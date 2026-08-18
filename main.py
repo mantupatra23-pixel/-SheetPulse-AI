@@ -26,7 +26,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="18.0.0",
+    version="19.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -58,7 +58,7 @@ if IS_POSTGRES:
     try:
         pg_pool = psycopg2.pool.SimpleConnectionPool(1, 20, cleaned_url, sslmode="require")
     except Exception as e:
-        print(f"Warning: Supabase connection failed ({e}), falling back to SQLite.")
+        print(f"Warning: Supabase connection failed ({e}), using SQLite fallback.")
         IS_POSTGRES = False
 
 class DBConn:
@@ -112,7 +112,9 @@ def init_db():
                     credits_left INTEGER DEFAULT 100,
                     total_used INTEGER DEFAULT 0,
                     created_at DOUBLE PRECISION NOT NULL
-                );
+                )
+            """)
+            db.execute("""
                 CREATE TABLE IF NOT EXISTS orders (
                     order_id TEXT PRIMARY KEY,
                     payment_id TEXT,
@@ -122,7 +124,9 @@ def init_db():
                     amount INTEGER NOT NULL,
                     status TEXT DEFAULT 'created',
                     created_at DOUBLE PRECISION NOT NULL
-                );
+                )
+            """)
+            db.execute("""
                 CREATE TABLE IF NOT EXISTS usage_logs (
                     id SERIAL PRIMARY KEY,
                     key TEXT,
@@ -131,7 +135,7 @@ def init_db():
                     latency REAL,
                     input_length INTEGER,
                     timestamp DOUBLE PRECISION NOT NULL
-                );
+                )
             """)
         else:
             db.execute("""
@@ -142,7 +146,9 @@ def init_db():
                     credits_left INTEGER DEFAULT 100,
                     total_used INTEGER DEFAULT 0,
                     created_at REAL NOT NULL
-                );
+                )
+            """)
+            db.execute("""
                 CREATE TABLE IF NOT EXISTS orders (
                     order_id TEXT PRIMARY KEY,
                     payment_id TEXT,
@@ -152,7 +158,9 @@ def init_db():
                     amount INTEGER NOT NULL,
                     status TEXT DEFAULT 'created',
                     created_at REAL NOT NULL
-                );
+                )
+            """)
+            db.execute("""
                 CREATE TABLE IF NOT EXISTS usage_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     key TEXT,
@@ -161,7 +169,7 @@ def init_db():
                     latency REAL,
                     input_length INTEGER,
                     timestamp REAL NOT NULL
-                );
+                )
             """)
 
         cur = db.execute("SELECT key FROM api_keys WHERE key = ?", ("sp_demo_live",))
@@ -250,7 +258,7 @@ def fetch_url_text(url: str) -> str:
             clean_url = 'https://' + clean_url
         req = urllib.request.Request(
             clean_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
@@ -317,7 +325,6 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# --- Primary Engine (Groq) & Fallback Engine (Gemini) ---
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not effective_key:
@@ -408,7 +415,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "18.0.0",
+        "version": "19.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -419,7 +426,6 @@ def health_metrics():
         }
     }
 
-# --- REAL-TIME TELEMETRY DASHBOARD ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
@@ -472,7 +478,6 @@ def get_user_dashboard(api_key: str):
         "recent_logs": recent_logs
     }
 
-# --- RAZORPAY PAYMENT ENDPOINTS ---
 @app.post("/api/v1/payments/create-order")
 def create_payment_order(req: CreateOrderRequest):
     amount_in_paise = 99900 if req.tier == "pro" else 249900
@@ -540,7 +545,6 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
-# --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -548,10 +552,8 @@ async def process_cell(req: ProcessRequest):
     if not text_content:
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    # 1. Quota & Auth Check
     verify_and_deduct_credits(req.api_key or "", amount=1)
 
-    # 2. Regex Fast Extractor Bypass
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -559,7 +561,6 @@ async def process_cell(req: ProcessRequest):
             log_request_event(req.api_key or "anonymous", "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 3. Cache Lookup
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)
@@ -576,11 +577,9 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Primary: Groq
         try:
             result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
         except Exception:
-            # Fallback: Gemini
             try:
                 result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, req.api_key)
             except Exception as ge:

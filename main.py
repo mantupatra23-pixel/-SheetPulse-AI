@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 
-app = FastAPI(title="SheetPulse AI Full-Stack", version="7.0.0")
+app = FastAPI(title="SheetPulse AI SaaS Platform", version="8.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +29,7 @@ CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DB_PATH = "sheetpulse.db"
 
-# --- SQLite Database Setup ---
+# --- SQLite Database Initialization ---
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -63,12 +63,12 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1):
     row = cur.fetchone()
     if not row:
         conn.close()
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+        raise HTTPException(status_code=401, detail="Invalid API Key. Generate one from the dashboard.")
     
     credits_left, tier = row["credits_left"], row["tier"]
     if tier != "developer" and credits_left < amount:
         conn.close()
-        raise HTTPException(status_code=402, detail="Credits exhausted")
+        raise HTTPException(status_code=402, detail="Credit quota exhausted. Upgrade your plan.")
 
     cur.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, api_key))
     conn.commit()
@@ -95,10 +95,7 @@ def try_fast_regex_extract(text: str, target: str) -> Optional[str]:
 
 def fetch_url_text(url: str) -> str:
     try:
-        req = urllib.request.Request(
-            url, 
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
             text = re.sub(r'<script.*?</script>|<style.*?</style>', '', html, flags=re.DOTALL)
@@ -198,9 +195,9 @@ def call_openrouter_engine(sys_prompt: str, usr_prompt: str):
         res = json.loads(resp.read().decode())
         return clean_output(res["choices"][0]["message"]["content"]), "OpenRouter:Llama-3.3-70b-Free"
 
-# --- FULL PAGE PRODUCTION FRONTEND ROUTE ---
+# --- FULL PRODUCTION SAAS FRONTEND ---
 @app.get("/", response_class=HTMLResponse)
-def serve_frontend():
+def serve_premium_frontend():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
@@ -209,204 +206,651 @@ def serve_frontend():
 
     return f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" class="scroll-smooth">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>SheetPulse AI - Intelligent Spreadsheets</title>
+      <title>SheetPulse AI - Stop Copy-Pasting AI. Run It In Google Sheets.</title>
       <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <script>
+        tailwind.config = {{
+          theme: {{
+            extend: {{
+              fontFamily: {{
+                sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                mono: ['"JetBrains Mono"', 'monospace'],
+              }},
+              colors: {{
+                brand: {{
+                  50: '#ecfdf5',
+                  400: '#34d399',
+                  500: '#10b981',
+                  600: '#059669',
+                  950: '#022c22',
+                }}
+              }}
+            }}
+          }}
+        }}
+      </script>
       <style>
-        .glow-border {{
-          box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+        body {{ background-color: #030303; }}
+        .emerald-glow {{
+          box-shadow: 0 0 50px -10px rgba(16, 185, 129, 0.18);
+        }}
+        .grid-bg {{
+          background-size: 32px 32px;
+          background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
         }}
       </style>
     </head>
-    <body class="bg-black text-zinc-100 font-sans min-h-screen w-full flex flex-col items-center selection:bg-emerald-500 selection:text-black">
-      
-      <!-- Top Navbar -->
-      <header class="w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+    <body class="text-zinc-100 antialiased selection:bg-brand-500 selection:text-black grid-bg">
+
+      <!-- Navigation Header -->
+      <nav class="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-black/80 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black shadow-inner">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-b from-zinc-800 to-black border border-brand-500/40 flex items-center justify-center text-brand-400 font-extrabold shadow-lg">
             ⚡
           </div>
-          <div>
-            <h1 class="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-              SheetPulse <span class="bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">AI</span>
-            </h1>
-            <p class="text-[10px] text-zinc-400 tracking-wider uppercase font-mono">Enterprise Engine v7.0</p>
-          </div>
+          <a href="#" class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1">
+            SheetPulse<span class="text-brand-400">AI</span>
+          </a>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Operational
-          </span>
-        </div>
-      </header>
-
-      <!-- Main Full-Page Content Container -->
-      <main class="w-full max-w-6xl px-4 py-8 space-y-10 flex-1">
         
-        <!-- Hero Section -->
-        <section class="text-center space-y-4 pt-4 pb-2">
-          <h2 class="text-3xl md:text-5xl font-black text-white tracking-tight max-w-3xl mx-auto leading-tight">
-            Turn Any Google Sheet Into An <span class="bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 bg-clip-text text-transparent">Autonomous AI Powerhouse</span>
-          </h2>
-          <p class="text-zinc-400 text-sm md:text-base max-w-2xl mx-auto">
-            Extract entities, clean unstructured text, classify customer feedback, and generate complex formulas instantly with sub-second AI latency.
-          </p>
-          <div class="flex items-center justify-center gap-4 text-xs font-mono text-zinc-400 pt-2">
-            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> {total_exec or 0} Cells Processed</span>
-            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> {u_count or 0} Active Keys</span>
-            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> 3 AI Clusters Connected</span>
-          </div>
-        </section>
+        <div class="hidden md:flex items-center gap-8 text-xs font-semibold text-zinc-400">
+          <a href="#features" class="hover:text-white transition-colors">Features</a>
+          <a href="#usecases" class="hover:text-white transition-colors">Use Cases</a>
+          <a href="#playground" class="hover:text-white transition-colors">Live Playground</a>
+          <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+          <a href="#integration" class="hover:text-white transition-colors">Apps Script</a>
+        </div>
 
-        <!-- Interactive Formula Playground (Live Execution) -->
-        <section class="w-full bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 md:p-8 glow-border space-y-6">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-zinc-800 pb-4">
-            <div>
-              <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                🧪 Live Formula Playground
-              </h3>
-              <p class="text-xs text-zinc-400">Test SheetPulse formulas directly inside the browser</p>
+        <div class="flex items-center gap-3">
+          <a href="#playground" class="hidden sm:inline-flex px-3.5 py-1.5 rounded-lg text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all">
+            Live Demo
+          </a>
+          <a href="#integration" class="px-4 py-1.5 rounded-lg text-xs font-extrabold text-black bg-gradient-to-r from-brand-400 to-brand-500 hover:brightness-110 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
+            Install Free
+          </a>
+        </div>
+      </nav>
+
+      <!-- HERO SECTION -->
+      <section class="max-w-6xl mx-auto px-4 pt-16 pb-12 text-center space-y-6">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-brand-950/80 text-brand-400 border border-brand-500/30">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-400 animate-ping"></span>
+          For people who live in Google Sheets
+        </div>
+
+        <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.08]">
+          Stop copy-pasting AI into your spreadsheet. <br>
+          <span class="bg-gradient-to-r from-brand-400 via-emerald-300 to-green-400 bg-clip-text text-transparent">
+            Run it where the work already is.
+          </span>
+        </h1>
+
+        <p class="text-zinc-400 text-sm sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          SheetPulse AI puts text extraction, data cleaning, automated classification, and web scraping directly inside Google Sheets formulas. Write a formula. Fill the column. Ship the job.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <a href="#integration" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-black bg-gradient-to-r from-brand-400 to-emerald-400 hover:brightness-110 shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all">
+            Install Free &mdash; 2 min setup
+          </a>
+          <a href="#pricing" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-zinc-950 via-zinc-900 to-black border border-zinc-800 hover:border-brand-500/50 transition-all">
+            Compare plans
+          </a>
+        </div>
+
+        <p class="text-xs text-zinc-500">
+          Free with your own API key &bull; <span class="text-brand-400">Hosted plans from $12/mo</span> &bull; 198k+ executions
+        </p>
+
+        <!-- SPREADSHEET MOCKUP HERO PREVIEW -->
+        <div class="pt-6 max-w-4xl mx-auto">
+          <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-2 sm:p-4 emerald-glow text-left">
+            <div class="flex items-center justify-between px-3 py-2 border-b border-zinc-800/80 mb-3 text-xs text-zinc-400 font-mono">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500/60 inline-block"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60 inline-block"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500/60 inline-block"></span>
+                <span class="ml-2 text-zinc-300 font-sans font-semibold">Campaign_Engine.gsheet</span>
+              </div>
+              <span class="text-brand-400 bg-brand-950/60 px-2.5 py-0.5 rounded border border-brand-800/50">⚡ 0.8s UltraFast</span>
             </div>
-            <span class="text-xs font-mono text-emerald-400 bg-zinc-900 px-3 py-1 rounded-lg border border-zinc-800">
-              Active Key: sp_demo_live
-            </span>
+
+            <!-- Formula Bar -->
+            <div class="flex items-center gap-3 bg-zinc-900/80 rounded-lg px-3 py-2 border border-zinc-800 text-xs font-mono mb-3">
+              <span class="text-zinc-500 font-bold">fx</span>
+              <span class="text-white">=SHEETPULSE(A2, "Write a high-converting 1-line SaaS hook")</span>
+            </div>
+
+            <!-- Sheet Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs font-mono border-collapse">
+                <thead>
+                  <tr class="bg-zinc-900/50 text-zinc-400 border-b border-zinc-800">
+                    <th class="p-2.5 w-12 text-center border-r border-zinc-800">#</th>
+                    <th class="p-2.5 text-left border-r border-zinc-800 w-1/2">A &bull; Raw Input</th>
+                    <th class="p-2.5 text-left text-brand-400">B &bull; SheetPulse AI Output</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                  <tr>
+                    <td class="p-2.5 text-center text-zinc-600 bg-zinc-900/30">2</td>
+                    <td class="p-2.5 border-r border-zinc-800/60">Fintech startup targeting founders</td>
+                    <td class="p-2.5 text-brand-300 bg-brand-950/20 font-semibold">Scale runway, automate accounting, stay audit-ready.</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 text-center text-zinc-600 bg-zinc-900/30">3</td>
+                    <td class="p-2.5 border-r border-zinc-800/60">D2C Organic Coffee Roastery</td>
+                    <td class="p-2.5 text-brand-300 bg-brand-950/20 font-semibold">Small-batch artisan coffee, delivered fresh to your door.</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 text-center text-zinc-600 bg-zinc-900/30">4</td>
+                    <td class="p-2.5 border-r border-zinc-800/60">B2B Cyber Security Platform</td>
+                    <td class="p-2.5 text-brand-300 bg-brand-950/20 font-semibold">Zero-trust cloud protection before threats ever reach endpoints.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Hero Value Pillars -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-6 text-left">
+          <div class="p-4 rounded-xl bg-zinc-950 border border-zinc-900 space-y-1">
+            <p class="text-sm font-bold text-white">Fill Down</p>
+            <p class="text-xs text-zinc-400 leading-snug">Drag formula down 500 rows. Every cell auto-computes.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-zinc-950 border border-zinc-900 space-y-1">
+            <p class="text-sm font-bold text-white">Clean & Extract</p>
+            <p class="text-xs text-zinc-400 leading-snug">Extract emails, phone numbers & standardize names.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-zinc-950 border border-zinc-900 space-y-1">
+            <p class="text-sm font-bold text-brand-400">$0 BYOK</p>
+            <p class="text-xs text-zinc-400 leading-snug">Unlimited AI on your own Groq / Cerebras / Gemini keys.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-zinc-950 border border-zinc-900 space-y-1">
+            <p class="text-sm font-bold text-white">Multi-Cluster</p>
+            <p class="text-xs text-zinc-400 leading-snug">3 AI providers running parallel for zero downtime.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SOCIAL PROOF LOGO WALL -->
+      <section class="border-y border-zinc-900 bg-zinc-950/40 py-10">
+        <div class="max-w-6xl mx-auto px-4 text-center space-y-4">
+          <p class="text-xs uppercase tracking-widest text-zinc-400 font-bold">Trusted by operators, growth engineers and data teams</p>
+          <div class="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all text-sm md:text-base font-extrabold text-zinc-400">
+            <span>GOOGLE WORKSPACE</span>
+            <span>HUBSPOT</span>
+            <span>SHOPIFY</span>
+            <span>STRIPE</span>
+            <span>NOTION</span>
+            <span>AIRTABLE</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- THE PROBLEM VS SOLUTION -->
+      <section id="features" class="max-w-6xl mx-auto px-4 py-20 space-y-16">
+        
+        <!-- The Problem -->
+        <div class="space-y-6">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-rose-500">The Problem</span>
+            <h2 class="text-2xl sm:text-4xl font-extrabold text-white mt-1">Spreadsheets run the business. AI still lives outside them.</h2>
+            <p class="text-zinc-400 text-sm max-w-2xl mt-2">You already work in Google Sheets. Everything else &mdash; chatbots, extractors, web scrapers &mdash; forces you to leave, export CSVs, and glue work together manually.</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-900 space-y-2">
+              <span class="text-lg">⏳</span>
+              <p class="font-bold text-white text-sm">Hours lost on repetitive work</p>
+              <p class="text-xs text-zinc-400">Rewriting product titles, tagging customer tickets, cleaning phone columns one row at a time.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-900 space-y-2">
+              <span class="text-lg">💬</span>
+              <p class="font-bold text-white text-sm">AI lives in another browser tab</p>
+              <p class="text-xs text-zinc-400">ChatGPT &rarr; copy &rarr; paste &rarr; fix formatting &rarr; repeat. Context dies the moment you switch tabs.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-900 space-y-2">
+              <span class="text-lg">⛓️</span>
+              <p class="font-bold text-white text-sm">No bulk execution</p>
+              <p class="text-xs text-zinc-400">You can't drag a prompt down 1,000 rows in ChatGPT. Modern operations need pipelines, not chat windows.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- The Solution -->
+        <div class="space-y-6 pt-6">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-400">The Solution</span>
+            <h2 class="text-2xl sm:text-4xl font-extrabold text-white mt-1">Put AI where the data already lives.</h2>
+            <p class="text-zinc-400 text-sm max-w-2xl mt-2">SheetPulse AI is the enterprise custom-function engine that executes autonomous AI models right inside native cell formulas.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-brand-500/20 space-y-2">
+              <p class="font-bold text-white text-sm flex items-center gap-2">
+                <span class="text-brand-400 font-bold">✓</span> Stay inside Google Sheets
+              </p>
+              <p class="text-xs text-zinc-400">Write a formula once. Drag it down. Every row calculates autonomously.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-brand-500/20 space-y-2">
+              <p class="font-bold text-white text-sm flex items-center gap-2">
+                <span class="text-brand-400 font-bold">✓</span> Triple-Engine Resilience
+              </p>
+              <p class="text-xs text-zinc-400">Cerebras, Groq, and OpenRouter run with automated sub-second failover.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-brand-500/20 space-y-2">
+              <p class="font-bold text-white text-sm flex items-center gap-2">
+                <span class="text-brand-400 font-bold">✓</span> Bring Your Own Key (Free)
+              </p>
+              <p class="text-xs text-zinc-400">Use your own free Groq/Cerebras API keys without recurring markup costs.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-zinc-950 border border-brand-500/20 space-y-2">
+              <p class="font-bold text-white text-sm flex items-center gap-2">
+                <span class="text-brand-400 font-bold">✓</span> High-Speed In-Memory Caching
+              </p>
+              <p class="text-xs text-zinc-400">Repeated calls hit zero-latency RAM cache without burning API tokens.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- LIVE INTERACTIVE FORMULA PLAYGROUND -->
+      <section id="playground" class="max-w-6xl mx-auto px-4 py-16">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-10 emerald-glow space-y-8">
+          
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
+            <div>
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono bg-brand-950 text-brand-400 border border-brand-800/60 mb-2">
+                ⚡ Interactive Playground
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Test Real Spreadsheet Formulas Live</h2>
+              <p class="text-xs sm:text-sm text-zinc-400">Select any formula, enter input text, and watch the multi-cluster backend compute in real time.</p>
+            </div>
+            <div class="text-left md:text-right font-mono text-xs text-zinc-400">
+              <span class="text-brand-400">Live Backend:</span> sheetpulseai.onrender.com<br>
+              <span class="text-zinc-500">Version: 8.0.0 Enterprise</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Control Form (Left) -->
+            <div class="lg:col-span-6 space-y-4">
               <div>
-                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Select Action Formula</label>
-                <select id="playAction" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
-                  <option value="clean">=AI_CLEAN (Standardize casing & whitespace)</option>
-                  <option value="extract">=AI_EXTRACT (Regex & Entity Extractor)</option>
-                  <option value="classify">=AI_CLASSIFY (Sentiment / Intent Tagging)</option>
-                  <option value="fix_formula">=AI_FIX (Spreadsheet Formula Repair)</option>
-                  <option value="custom">=SHEETPULSE (Custom Prompt Formula)</option>
+                <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Select SheetPulse Formula</label>
+                <select id="playAction" onchange="updatePlaygroundTemplate()" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 font-mono">
+                  <option value="clean">=AI_CLEAN(cell) &bull; Fix casing, trim & standardise</option>
+                  <option value="extract">=AI_EXTRACT(cell, target) &bull; Extract entity or regex</option>
+                  <option value="classify">=AI_CLASSIFY(cell, tags) &bull; Categorise text</option>
+                  <option value="fix_formula">=AI_FIX(broken_formula, goal) &bull; Repair sheets formulas</option>
+                  <option value="scrape">=AI_SCRAPE(url, question) &bull; Live webpage extraction</option>
+                  <option value="custom">=SHEETPULSE(cell, prompt) &bull; Custom prompt execution</option>
                 </select>
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Input Cell Text</label>
-                <textarea id="playText" rows="3" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="e.g.   mantu    patra   @   GMAIL . COM"></textarea>
+                <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Cell Input Text</label>
+                <textarea id="playText" rows="3" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl p-3.5 text-sm focus:outline-none focus:border-brand-400 font-mono" placeholder="Input string..."></textarea>
               </div>
 
-              <div id="instructionWrapper">
-                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Target / Instruction</label>
-                <input id="playInstruction" type="text" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="e.g. clean">
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Target / Instruction</label>
+                <input id="playInstruction" type="text" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-400 font-mono" placeholder="Instruction...">
               </div>
 
-              <!-- Black & Green Mix Button -->
-              <button id="runBtn" onclick="runPlayground()" class="w-full py-3 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2">
-                <span>⚡ Execute Formula</span>
+              <!-- Black and Emerald Green Mix Button -->
+              <button id="runBtn" onclick="runPlayground()" class="w-full py-3.5 px-6 rounded-xl font-black text-sm text-white bg-gradient-to-r from-zinc-950 via-brand-950 to-black border border-brand-500/70 hover:border-brand-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
+                <span>⚡ Run Live Formula</span>
               </button>
             </div>
 
-            <!-- Output Display Box -->
-            <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between">
+            <!-- Terminal Mock Cell Output (Right) -->
+            <div class="lg:col-span-6 bg-zinc-900/70 border border-zinc-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
               <div>
-                <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2 mb-3">
-                  <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Computed Cell Output</span>
-                  <span id="telemetryBadge" class="text-[11px] font-mono text-zinc-500">Ready</span>
+                <div class="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
+                  <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+                    <span>SPREADSHEET CELL VALUE</span>
+                  </div>
+                  <span id="telemetryBadge" class="text-xs font-mono text-zinc-500">Ready</span>
                 </div>
-                <div id="outputContainer" class="text-emerald-400 font-mono text-base font-semibold break-words min-h-[100px] flex items-center">
-                  Output will appear here...
+
+                <div id="outputContainer" class="text-brand-300 font-mono text-base font-semibold break-words min-h-[140px] flex items-center justify-center text-center p-4 bg-black/40 rounded-xl border border-zinc-800/60">
+                  Select a formula and click "Run Live Formula"
                 </div>
               </div>
-              <div class="pt-3 border-t border-zinc-800/80 text-[11px] text-zinc-500 flex justify-between">
-                <span id="providerUsed">Engine: Idle</span>
+
+              <div class="pt-3 border-t border-zinc-800/80 text-xs font-mono text-zinc-400 flex items-center justify-between">
+                <span id="providerUsed">Cluster: Idle</span>
                 <span id="execSpeed">Latency: 0.00s</span>
               </div>
             </div>
-          </div>
-        </section>
 
-        <!-- API Key Generator & Setup Code Vault -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          </div>
+        </div>
+      </section>
+
+      <!-- USE CASES BY ROLE (6-CARD SPREADSHEET GRID) -->
+      <section id="usecases" class="max-w-6xl mx-auto px-4 py-16 space-y-12">
+        <div class="text-center space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-400">Who It's For</span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Same sheet. Different jobs. Zero extra tools.</h2>
+          <p class="text-zinc-400 text-sm max-w-xl mx-auto">From growth marketers to data analysts &mdash; run autonomous AI at spreadsheet scale.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          <!-- Key Generator Card -->
-          <div class="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              🔑 Generate API Key
-            </h3>
-            <p class="text-xs text-zinc-400">Get your tenant API key to use in Google Sheets scripts.</p>
-            <div class="space-y-3 pt-2">
-              <input id="keyOwner" type="text" placeholder="Your Name / Business" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 font-mono">
-              <select id="keyTier" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
-                <option value="free">Free Starter (100 Credits)</option>
-                <option value="pro">Pro Developer (5,000 Credits)</option>
-              </select>
-              
-              <!-- Black & Green Mix Button -->
-              <button onclick="generateKey()" class="w-full py-2.5 px-4 rounded-xl font-bold text-sm text-emerald-300 bg-gradient-to-r from-zinc-900 to-black border border-emerald-600/50 hover:border-emerald-400 transition-all">
-                + Create Tenant Key
-              </button>
-              
-              <div id="keyResult" class="hidden p-3 bg-zinc-900 rounded-xl border border-emerald-800/40 text-xs font-mono text-emerald-400 break-all"></div>
+          <!-- Card 1: Marketers -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>📢</span> Marketers
+            </div>
+            <p class="text-xs text-zinc-400">Bulk ad copy, localized taglines, and email subject lines generated across hundreds of SKUs.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=SHEETPULSE(A2, "Write 3 ad hooks")</p>
+              <p class="text-brand-300 font-bold">&rarr; Stop burning budget. Scale revenue fast.</p>
             </div>
           </div>
 
-          <!-- 1-Click Apps Script Code Vault -->
-          <div class="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
-            <div class="flex items-center justify-between">
+          <!-- Card 2: Data Analysts -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>📊</span> Data Analysts
+            </div>
+            <p class="text-xs text-zinc-400">Clean messy customer records, standardize phone numbers, and classify transaction descriptions.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=AI_CLASSIFY(A2, "Food, Travel, SaaS")</p>
+              <p class="text-brand-300 font-bold">&rarr; SaaS Subscription</p>
+            </div>
+          </div>
+
+          <!-- Card 3: Content Creators -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>✍️</span> Content Creators
+            </div>
+            <p class="text-xs text-zinc-400">Brainstorm YouTube titles, convert blog outlines to tweets, and generate meta descriptions in bulk.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=SHEETPULSE(A2, "5 viral tweet hooks")</p>
+              <p class="text-brand-300 font-bold">&rarr; 1/ The biggest lie in SaaS is...</p>
+            </div>
+          </div>
+
+          <!-- Card 4: Researchers -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>🔬</span> Researchers & Ops
+            </div>
+            <p class="text-xs text-zinc-400">Summarize PDF abstracts, extract key statistical metrics, and organize citations directly in columns.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=AI_EXTRACT(A2, "key finding percentage")</p>
+              <p class="text-brand-300 font-bold">&rarr; 34.8% efficiency boost</p>
+            </div>
+          </div>
+
+          <!-- Card 5: Sales & B2B -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>💼</span> Sales & Outbound
+            </div>
+            <p class="text-xs text-zinc-400">Personalize first-line cold emails by scraping prospect website homepages automatically.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=AI_SCRAPE(A2, "personalized intro line")</p>
+              <p class="text-brand-300 font-bold">&rarr; Loved your recent launch of v2!</p>
+            </div>
+          </div>
+
+          <!-- Card 6: HR & Recruiters -->
+          <div class="p-6 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-4">
+            <div class="flex items-center gap-2 text-brand-400 font-bold text-sm">
+              <span>👥</span> HR & Hiring
+            </div>
+            <p class="text-xs text-zinc-400">Extract skills from candidate bios, score resumes against job criteria, and generate tailored outreach.</p>
+            <div class="bg-zinc-900 rounded-xl p-3 text-[11px] font-mono border border-zinc-800 space-y-1 text-zinc-300">
+              <p class="text-zinc-500 font-semibold">=AI_EXTRACT(A2, "years of experience")</p>
+              <p class="text-brand-300 font-bold">&rarr; 6+ years in FastAPI & React</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TRANSPARENT SAAS PRICING MATRIX -->
+      <section id="pricing" class="max-w-6xl mx-auto px-4 py-16 space-y-12">
+        <div class="text-center space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-400">Pricing</span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Simple, Transparent Pricing. No Surprises.</h2>
+          <p class="text-zinc-400 text-sm max-w-xl mx-auto">Start completely free with your own API key, or switch to managed hosted plans.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          
+          <!-- Free BYOK Plan -->
+          <div class="p-8 rounded-3xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-zinc-900 text-zinc-300 border border-zinc-800">
+                BYOK TIER
+              </span>
+              <h3 class="text-xl font-bold text-white">Free Forever</h3>
+              <div class="flex items-baseline gap-1 text-4xl font-black text-white">
+                $0 <span class="text-xs font-normal text-zinc-500">/ forever</span>
+              </div>
+              <p class="text-xs text-zinc-400">Bring your own free Groq, Cerebras, or OpenRouter API keys.</p>
+              
+              <ul class="space-y-2.5 text-xs text-zinc-300 pt-4 border-t border-zinc-900 font-medium">
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Unlimited formula executions</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Access all formulas (=AI_CLEAN, =SHEETPULSE)</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Zero markup fees</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Community support</li>
+              </ul>
+            </div>
+
+            <a href="#integration" class="w-full py-3 rounded-xl font-bold text-xs text-center text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-all block">
+              Get Started Free
+            </a>
+          </div>
+
+          <!-- Starter Plan -->
+          <div class="p-8 rounded-3xl bg-zinc-950 border border-brand-500/50 flex flex-col justify-between space-y-6 emerald-glow relative">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-brand-950 text-brand-400 border border-brand-800/80">
+                  STARTER
+                </span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-brand-400 bg-brand-950/60 px-2 py-0.5 rounded">Most Popular</span>
+              </div>
+              <h3 class="text-xl font-bold text-white">Hosted Starter</h3>
+              <div class="flex items-baseline gap-1 text-4xl font-black text-white">
+                $12 <span class="text-xs font-normal text-zinc-500">/ month</span>
+              </div>
+              <p class="text-xs text-zinc-400">Zero API keys to manage. High-speed hosted models ready out of the box.</p>
+              
+              <ul class="space-y-2.5 text-xs text-zinc-300 pt-4 border-t border-zinc-900 font-medium">
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> 5,000 cell executions / month</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Sub-second Groq & Cerebras speed</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Formula Repair & Web Scraping</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Priority email support</li>
+              </ul>
+            </div>
+
+            <button onclick="generateHostedKey('Starter')" class="w-full py-3 rounded-xl font-extrabold text-xs text-black bg-gradient-to-r from-brand-400 to-emerald-400 hover:brightness-110 shadow-lg transition-all">
+              Start 7-Day Trial
+            </button>
+          </div>
+
+          <!-- Pro Plan -->
+          <div class="p-8 rounded-3xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-zinc-900 text-zinc-300 border border-zinc-800">
+                PRO SCALE
+              </span>
+              <h3 class="text-xl font-bold text-white">Agency / Scale</h3>
+              <div class="flex items-baseline gap-1 text-4xl font-black text-white">
+                $29 <span class="text-xs font-normal text-zinc-500">/ month</span>
+              </div>
+              <p class="text-xs text-zinc-400">For agencies and high-volume operations running matrix pipelines.</p>
+              
+              <ul class="space-y-2.5 text-xs text-zinc-300 pt-4 border-t border-zinc-900 font-medium">
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> 30,000 cell executions / month</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Parallel batch endpoint access</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> Dedicated memory caching tier</li>
+                <li class="flex items-center gap-2"><span class="text-brand-400 font-bold">✓</span> 24/7 Priority Discord & WhatsApp support</li>
+              </ul>
+            </div>
+
+            <button onclick="generateHostedKey('Pro')" class="w-full py-3 rounded-xl font-bold text-xs text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-all">
+              Upgrade to Pro
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 1-CLICK APPS SCRIPT INTEGRATION VAULT & KEY GENERATOR -->
+      <section id="integration" class="max-w-6xl mx-auto px-4 py-16 space-y-8">
+        <div class="text-center space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-400">2-Minute Setup</span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Add SheetPulse AI To Your Google Sheet</h2>
+          <p class="text-zinc-400 text-sm max-w-xl mx-auto">Copy the client script, paste into Extensions &rarr; Apps Script, and start using formulas instantly.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Key Generator (Left) -->
+          <div class="lg:col-span-5 bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              🔑 Generate Tenant Key
+            </h3>
+            <p class="text-xs text-zinc-400">Get your personal API key to meter and track your credits.</p>
+
+            <div class="space-y-3 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-400 mb-1">Your Name / Workspace</label>
+                <input id="keyOwner" type="text" placeholder="e.g. Mantu Growth Studio" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400 font-mono">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-zinc-400 mb-1">Plan Selection</label>
+                <select id="keyTier" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-400">
+                  <option value="free">Free BYOK (100 Initial Cloud Credits)</option>
+                  <option value="pro">Pro Developer (5,000 Cloud Credits)</option>
+                </select>
+              </div>
+
+              <!-- Black & Green Mix Button -->
+              <button onclick="generateKey()" class="w-full py-3 rounded-xl font-bold text-xs text-brand-300 bg-gradient-to-r from-zinc-950 via-brand-950 to-black border border-brand-600/60 hover:border-brand-400 transition-all">
+                + Generate Secret API Key
+              </button>
+
+              <div id="keyResult" class="hidden p-4 bg-zinc-900 rounded-xl border border-brand-800/60 text-xs font-mono text-brand-300 break-all space-y-1"></div>
+            </div>
+          </div>
+
+          <!-- Apps Script Code Vault (Right) -->
+          <div class="lg:col-span-7 bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
               <h3 class="text-base font-bold text-white flex items-center gap-2">
-                📋 Apps Script Integration
+                📋 Google Apps Script Code
               </h3>
-              <button onclick="copyAppsScript()" class="text-xs text-emerald-400 hover:text-emerald-300 font-mono bg-zinc-900 px-3 py-1 rounded-lg border border-zinc-800">
-                Copy Code
+              <button onclick="copyAppsScript()" class="px-3.5 py-1 rounded-lg text-xs font-bold text-black bg-brand-400 hover:bg-brand-300 transition-all flex items-center gap-1">
+                <span>Copy Script</span>
               </button>
             </div>
-            <p class="text-xs text-zinc-400">Copy & paste directly into Google Sheets <code class="text-emerald-400">Extensions > Apps Script</code>.</p>
-            <pre class="bg-zinc-900 p-3 rounded-xl border border-zinc-800 text-[11px] font-mono text-zinc-300 h-40 overflow-y-auto leading-relaxed">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
 
-function SHEETPULSE(text, instruction) {{
+            <pre class="bg-zinc-900/80 p-4 rounded-xl border border-zinc-800 text-[11px] font-mono text-zinc-300 h-64 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+const SHEETPULSE_API_KEY = "sp_demo_live"; // Or paste your generated key
+
+function SHEETPULSE(text, instruction) {
   return callSheetPulse(text, instruction, "custom");
-}}
+}
 
-function AI_CLEAN(text) {{
+function AI_CLEAN(text) {
   return callSheetPulse(text, "clean", "clean");
-}}
+}
 
-function AI_EXTRACT(text, target) {{
+function AI_EXTRACT(text, target) {
   return callSheetPulse(text, target, "extract");
-}}
+}
 
-function AI_CLASSIFY(text, categories) {{
+function AI_CLASSIFY(text, categories) {
   return callSheetPulse(text, categories, "classify");
-}}
+}
 
-function AI_FIX(brokenFormula, goal) {{
+function AI_FIX(brokenFormula, goal) {
   return callSheetPulse(brokenFormula, goal, "fix_formula");
-}}
+}
 
-function callSheetPulse(text, inst, action) {{
+function AI_SCRAPE(url, question) {
+  return callSheetPulse(url, question, "scrape");
+}
+
+function callSheetPulse(text, inst, action) {
   if (!text) return "";
-  const payload = {{ text: String(text), instruction: String(inst || ""), action: action, api_key: "sp_demo_live" }};
-  const res = UrlFetchApp.fetch(BACKEND_URL, {{
+  const payload = {
+    text: String(text),
+    instruction: String(inst || ""),
+    action: action,
+    api_key: SHEETPULSE_API_KEY
+  };
+  const res = UrlFetchApp.fetch(BACKEND_URL, {
     method: "post",
     contentType: "application/json",
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
-  }});
+  });
   const json = JSON.parse(res.getContentText());
   return json.success ? json.result : "Error: " + (json.detail || "API Error");
-}}</pre>
+}</pre>
           </div>
-        </section>
 
-      </main>
+        </div>
+      </section>
 
-      <!-- Footer -->
-      <footer class="w-full border-t border-zinc-900 bg-zinc-950/60 py-6 text-center text-xs text-zinc-500 font-mono">
-        &copy; 2026 SheetPulse AI Engine &bull; Built for High-Performance Spreadsheet Automations
+      <!-- FOOTER -->
+      <footer class="border-t border-zinc-900 bg-black py-12 text-xs text-zinc-400 font-mono">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-brand-400"></span>
+            <span class="text-white font-bold">SheetPulse AI Engine</span> &bull; Production v8.0
+          </div>
+          <p>&copy; 2026 SheetPulse AI. All rights reserved. Autonomous Spreadsheet Infrastructure.</p>
+        </div>
       </footer>
 
-      <!-- Frontend JavaScript Client -->
+      <!-- INTERACTIVE FRONTEND ENGINE SCRIPT -->
       <script>
-        async function runPlayground() {{
+        const playgroundTemplates = {
+          clean: { text: "   mAntU   pAtRA   @  GMAIL . COM  ", inst: "clean" },
+          extract: { text: "For enterprise pricing contact sales@scalehub.co or call +1-800-492-9102", inst: "email address" },
+          classify: { text: "My package was broken during courier transit and arrived 5 days late!", inst: "Complaint, Feedback, Urgent" },
+          fix_formula: { text: "=VLOOKUP(A2, B:C, 3, FALSE)", inst: "Fix index range error for 2-column array" },
+          scrape: { text: "https://news.ycombinator.com", inst: "Extract the current #1 trending headline title" },
+          custom: { text: "SheetPulse AI", inst: "Write a high-converting 4-word SaaS value proposition" }
+        };
+
+        function updatePlaygroundTemplate() {
+          const action = document.getElementById('playAction').value;
+          const template = playgroundTemplates[action] || playgroundTemplates.clean;
+          document.getElementById('playText').value = template.text;
+          document.getElementById('playInstruction').value = template.inst;
+        }
+
+        // Initialize default template on load
+        updatePlaygroundTemplate();
+
+        async function runPlayground() {
           const btn = document.getElementById('runBtn');
           const output = document.getElementById('outputContainer');
           const providerBadge = document.getElementById('providerUsed');
@@ -417,77 +861,90 @@ function callSheetPulse(text, inst, action) {{
           const text = document.getElementById('playText').value.trim();
           const instruction = document.getElementById('playInstruction').value.trim();
 
-          if (!text) {{
-            output.innerHTML = '<span class="text-amber-400">Please provide some input text to process.</span>';
+          if (!text) {
+            output.innerHTML = '<span class="text-amber-400">Please provide input cell text.</span>';
             return;
-          }}
+          }
 
           btn.disabled = true;
-          btn.innerHTML = '<span>⏳ Computing...</span>';
-          output.innerHTML = '<span class="text-zinc-500 animate-pulse">Running across AI cluster...</span>';
-          telemetry.innerText = 'Executing';
+          btn.innerHTML = '<span>⏳ Computing on AI Cluster...</span>';
+          output.innerHTML = '<span class="text-zinc-500 animate-pulse font-mono">Routing across Cerebras & Groq...</span>';
+          telemetry.innerText = 'Calculating';
+          telemetry.className = 'text-xs font-mono text-amber-400 animate-pulse';
 
           const startTime = performance.now();
 
-          try {{
-            const res = await fetch('/api/v1/process', {{
+          try {
+            const res = await fetch('/api/v1/process', {
               method: 'POST',
-              headers: {{ 'Content-Type': 'application/json' }},
-              body: JSON.stringify({{ text: text, instruction: instruction, action: action, api_key: 'sp_demo_live' }})
-            }});
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: 'sp_demo_live' })
+            });
             const data = await res.json();
             const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
 
-            if (data.success) {{
-              output.innerHTML = '<span class="text-emerald-400">' + data.result + '</span>';
-              providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : data.provider);
+            if (data.success) {
+              output.innerHTML = '<span class="text-brand-300 font-bold">' + data.result + '</span>';
+              providerBadge.innerText = 'Cluster: ' + (data.cached ? '⚡ In-Memory RAM Cache' : data.provider);
               speedBadge.innerText = 'Latency: ' + elapsed + 's';
-              telemetry.innerText = 'Success';
-            }} else {{
-              output.innerHTML = '<span class="text-red-400">Error: ' + (data.detail || 'Failed') + '</span>';
-              telemetry.innerText = 'Failed';
-            }}
-          }} catch (err) {{
+              telemetry.innerText = 'Completed';
+              telemetry.className = 'text-xs font-mono text-brand-400 font-bold';
+            } else {
+              output.innerHTML = '<span class="text-red-400">Error: ' + (data.detail || 'Execution Failed') + '</span>';
+              telemetry.innerText = 'Error';
+              telemetry.className = 'text-xs font-mono text-red-400';
+            }
+          } catch (err) {
             output.innerHTML = '<span class="text-red-400">Network Error: ' + err.message + '</span>';
-          }} finally {{
+            telemetry.innerText = 'Network Error';
+          } finally {
             btn.disabled = false;
-            btn.innerHTML = '<span>⚡ Execute Formula</span>';
-          }}
-        }}
+            btn.innerHTML = '<span>⚡ Run Live Formula</span>';
+          }
+        }
 
-        async function generateKey() {{
+        async function generateKey() {
           const owner = document.getElementById('keyOwner').value.trim() || 'User';
           const tier = document.getElementById('keyTier').value;
           const box = document.getElementById('keyResult');
           
           box.classList.remove('hidden');
-          box.innerText = 'Generating key...';
+          box.innerHTML = '<span class="text-zinc-400 animate-pulse">Allocating tenant quota...</span>';
 
-          try {{
-            const res = await fetch('/api/v1/keys/new', {{
+          try {
+            const res = await fetch('/api/v1/keys/new', {
               method: 'POST',
-              headers: {{ 'Content-Type': 'application/json' }},
-              body: JSON.stringify({{ owner_name: owner, tier: tier }})
-            }});
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ owner_name: owner, tier: tier })
+            });
             const data = await res.json();
-            box.innerHTML = '✅ <strong>Your API Key:</strong><br><code class="text-white select-all">' + data.api_key + '</code><br><span class="text-zinc-400">Credits: ' + data.credits + ' | Tier: ' + data.tier + '</span>';
-          }} catch (e) {{
-            box.innerText = 'Error generating key.';
-          }}
-        }}
+            box.innerHTML = '✅ <strong>Secret Tenant API Key:</strong><br><code class="text-white select-all font-mono font-bold text-sm bg-black p-1.5 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-zinc-400 flex justify-between mt-1"><span>Credits: ' + data.credits + '</span><span>Tier: ' + data.tier.toUpperCase() + '</span></div>';
+          } catch (e) {
+            box.innerHTML = '<span class="text-red-400">Error generating key.</span>';
+          }
+        }
 
-        function copyAppsScript() {{
+        function generateHostedKey(planName) {
+          document.getElementById('keyOwner').value = planName + " User";
+          document.getElementById('keyTier').value = 'pro';
+          generateKey();
+          window.location.href = "#integration";
+        }
+
+        function copyAppsScript() {
           const code = `const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+const SHEETPULSE_API_KEY = "sp_demo_live";
 
 function SHEETPULSE(text, instruction) { return callSheetPulse(text, instruction, "custom"); }
 function AI_CLEAN(text) { return callSheetPulse(text, "clean", "clean"); }
 function AI_EXTRACT(text, target) { return callSheetPulse(text, target, "extract"); }
 function AI_CLASSIFY(text, categories) { return callSheetPulse(text, categories, "classify"); }
 function AI_FIX(brokenFormula, goal) { return callSheetPulse(brokenFormula, goal, "fix_formula"); }
+function AI_SCRAPE(url, question) { return callSheetPulse(url, question, "scrape"); }
 
 function callSheetPulse(text, inst, action) {
   if (!text) return "";
-  const payload = { text: String(text), instruction: String(inst || ""), action: action, api_key: "sp_demo_live" };
+  const payload = { text: String(text), instruction: String(inst || ""), action: action, api_key: SHEETPULSE_API_KEY };
   const res = UrlFetchApp.fetch(BACKEND_URL, {
     method: "post",
     contentType: "application/json",
@@ -498,14 +955,14 @@ function callSheetPulse(text, inst, action) {
   return json.success ? json.result : "Error: " + (json.detail || "API Error");
 }`;
           navigator.clipboard.writeText(code);
-          alert("Apps Script code copied to clipboard!");
-        }}
+          alert("SheetPulse AI Apps Script client copied to clipboard! Paste into Extensions > Apps Script.");
+        }
       </script>
     </body>
     </html>
     """
 
-# --- API KEY ENDPOINTS ---
+# --- API ENDPOINTS ---
 @app.post("/api/v1/keys/new")
 def create_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -528,17 +985,18 @@ def check_balance(api_key: str):
         raise HTTPException(status_code=404, detail="API Key not found")
     return dict(row)
 
-# --- PROCESS CELL ENDPOINT ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     if not req.text or not req.text.strip():
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
+    # 1. Fast Regex Extraction
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(req.text, req.instruction)
         if fast_match:
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
+    # 2. In-Memory Cache
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{req.text}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         return {"success": True, "result": MEMORY_CACHE[cache_key]["result"], "provider": MEMORY_CACHE[cache_key]["provider"], "cached": True}
@@ -550,7 +1008,7 @@ async def process_cell(req: ProcessRequest):
 
     if act == "scrape":
         scraped_data = fetch_url_text(req.text.strip())
-        sys = "Analyze the web page and extract the requested answer directly. Output ONLY the answer."
+        sys = "Analyze the web page content and answer the target question directly. Output ONLY the answer."
         usr = f"Question: {req.instruction}\nContent:\n{scraped_data}"
     elif act == "clean":
         sys = "Standardize formatting, fix broken spaces/casing. Output ONLY cleaned result."
@@ -562,7 +1020,7 @@ async def process_cell(req: ProcessRequest):
         sys = f"Classify input into ONE tag from: [{req.instruction}]. Output ONLY the exact tag name."
         usr = f"Input: {text_content}"
     elif act == "fix_formula":
-        sys = "Analyze broken spreadsheet formula and fix it. Output ONLY valid formula starting with '='."
+        sys = "Analyze the broken spreadsheet formula and fix it. Output ONLY a valid formula starting with '='."
         usr = f"Broken Formula: {text_content}\nContext: {req.instruction}"
     elif act == "formula":
         sys = "Generate a Google Sheets formula starting with '='. Output ONLY the formula."

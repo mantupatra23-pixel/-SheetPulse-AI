@@ -18,7 +18,7 @@ from groq import Groq
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="14.0.0",
+    version="15.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -95,13 +95,18 @@ def init_db():
 
 init_db()
 
+# --- BYOK Key Detector ---
+def is_byok_key(key: str) -> bool:
+    k = key.strip()
+    return k.startswith("gsk_") or k.startswith("csk-") or k.startswith("sk-") or k.startswith("AIza")
+
 # --- Quota & Auth Verification ---
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     sanitized_key = (api_key or "").strip()
     if not sanitized_key or sanitized_key == "YOUR_API_KEY_HERE":
         raise HTTPException(
             status_code=401,
-            detail="Valid API Key required. Generate your private key at https://sheetpulseai.onrender.com"
+            detail="Valid API Key required. Generate your key at https://sheetpulseai.onrender.com"
         )
 
     conn = get_db()
@@ -109,19 +114,32 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     try:
         cur.execute("SELECT owner_name, tier, credits_left FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
+
+        # Auto-Register BYOK Keys on the fly
+        if not row and is_byok_key(sanitized_key):
+            byok_provider = "Groq" if sanitized_key.startswith("gsk_") else ("Cerebras" if sanitized_key.startswith("csk-") else "BYOK")
+            cur.execute(
+                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
+                (sanitized_key, f"{byok_provider} Key User", time.time())
+            )
+            conn.commit()
+            return {"owner": f"{byok_provider} User", "tier": "BYOK", "remaining": 999999}
+
         if not row:
             raise HTTPException(status_code=401, detail="Invalid API Key. Key not recognized by cluster.")
         
         tier, credits_left = row["tier"], row["credits_left"]
-        if tier != "developer" and credits_left < amount:
+        if tier not in ["developer", "byok"] and credits_left < amount:
             raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
 
-        cur.execute(
-            "UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?",
-            (amount, amount, sanitized_key)
-        )
-        conn.commit()
-        return {"owner": row["owner_name"], "tier": tier, "remaining": credits_left - amount}
+        if tier != "byok":
+            cur.execute(
+                "UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?",
+                (amount, amount, sanitized_key)
+            )
+            conn.commit()
+
+        return {"owner": row["owner_name"], "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
     finally:
         conn.close()
 
@@ -208,7 +226,7 @@ def clean_output(text: str) -> str:
         text = lines[0]
     return text.strip('*_ `').strip()
 
-# --- Pydantic Data Models ---
+# --- Pydantic Models ---
 class KeyGenRequest(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
     tier: Optional[str] = Field("free", pattern="^(free|pro|developer)$")
@@ -258,10 +276,11 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
             raise ValueError("Empty output")
         return out, "Cerebras:Llama-3.1-8b"
 
-def _sync_groq_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
-    if not GROQ_API_KEY:
+def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
+    if not effective_key:
         raise ValueError("Groq unconfigured")
-    client = Groq(api_key=GROQ_API_KEY, timeout=8.0)
+    client = Groq(api_key=effective_key, timeout=8.0)
     for model_name in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
         try:
             res = client.chat.completions.create(
@@ -366,77 +385,14 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "14.0.0",
+        "version": "15.0.0",
         "active_keys": u_count or 0,
         "total_cells_processed": total_exec or 0,
         "logged_events": log_count or 0,
         "cache_entries": len(MEMORY_CACHE)
     }
 
-# --- PAYMENT INTEGRATION ---
-@app.post("/api/v1/payments/create-order")
-def create_payment_order(req: CreateOrderRequest):
-    amount_in_paise = 99900 if req.tier == "pro" else 249900
-    generated_order_id = f"order_{uuid.uuid4().hex[:14]}"
-    
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO orders (order_id, owner_name, email, tier, amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'created', ?)",
-        (generated_order_id, req.owner_name.strip(), req.email.strip(), req.tier, amount_in_paise, time.time())
-    )
-    conn.commit()
-    conn.close()
-
-    return {
-        "success": True,
-        "order_id": generated_order_id,
-        "amount": amount_in_paise,
-        "currency": "INR",
-        "key_id": RAZORPAY_KEY_ID,
-        "tier": req.tier,
-        "name": req.owner_name,
-        "email": req.email
-    }
-
-@app.post("/api/v1/payments/verify-payment")
-def verify_payment(req: VerifyPaymentRequest):
-    if RAZORPAY_KEY_SECRET != "demo_secret_key":
-        generated_signature = hmac.new(
-            RAZORPAY_KEY_SECRET.encode('utf-8'),
-            f"{req.razorpay_order_id}|{req.razorpay_payment_id}".encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
-
-        if not hmac.compare_digest(generated_signature, req.razorpay_signature):
-            raise HTTPException(status_code=400, detail="Invalid Payment Signature")
-
-    new_key = f"sp_{uuid.uuid4().hex[:18]}"
-    credits_allotted = 5000 if req.tier == "pro" else 30000
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE orders SET payment_id = ?, status = 'paid' WHERE order_id = ?",
-        (req.razorpay_payment_id, req.razorpay_order_id)
-    )
-    cur.execute(
-        "INSERT INTO api_keys VALUES (?, ?, ?, ?, 0, ?)",
-        (new_key, req.owner_name.strip(), req.tier, credits_allotted, time.time())
-    )
-    conn.commit()
-    conn.close()
-
-    return {
-        "success": True,
-        "api_key": new_key,
-        "owner": req.owner_name,
-        "credits": credits_allotted,
-        "tier": req.tier.upper(),
-        "payment_id": req.razorpay_payment_id
-    }
-
-# --- COMPLETE DASHBOARD & ANALYTICS ENDPOINT ---
+# --- REAL-TIME ACCOUNT DASHBOARD (Supports both sp_... and gsk_... BYOK) ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
@@ -447,9 +403,21 @@ def get_user_dashboard(api_key: str):
     cur = conn.cursor()
     cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
     key_row = cur.fetchone()
+
+    # Auto-register BYOK key if accessed via dashboard
+    if not key_row and is_byok_key(sanitized_key):
+        byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Cerebras BYOK" if sanitized_key.startswith("csk-") else "BYOK Provider")
+        cur.execute(
+            "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
+            (sanitized_key, byok_provider, time.time())
+        )
+        conn.commit()
+        cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
+        key_row = cur.fetchone()
+
     if not key_row:
         conn.close()
-        raise HTTPException(status_code=404, detail="API Key not found")
+        raise HTTPException(status_code=404, detail="API Key not found in cluster.")
 
     cur.execute(
         "SELECT action, provider, latency, timestamp FROM usage_logs WHERE key = ? ORDER BY id DESC LIMIT 15",
@@ -462,14 +430,14 @@ def get_user_dashboard(api_key: str):
 
     conn.close()
 
-    initial_quota = 100 if key_row["tier"] == "free" else (5000 if key_row["tier"] == "pro" else 30000)
-    used_percentage = min(100, round((key_row["total_used"] / max(1, key_row["total_used"] + key_row["credits_left"])) * 100))
+    is_unlimited = key_row["tier"] == "byok"
+    used_percentage = 0 if is_unlimited else min(100, round((key_row["total_used"] / max(1, key_row["total_used"] + key_row["credits_left"])) * 100))
 
     return {
         "success": True,
         "owner": key_row["owner_name"],
-        "tier": key_row["tier"].upper(),
-        "credits_left": key_row["credits_left"],
+        "tier": "UNLIMITED BYOK" if is_unlimited else key_row["tier"].upper(),
+        "credits_left": "Unlimited (BYOK)" if is_unlimited else key_row["credits_left"],
         "total_used": key_row["total_used"],
         "used_percentage": used_percentage,
         "avg_latency": f"{avg_lat:.2f}s",
@@ -477,6 +445,7 @@ def get_user_dashboard(api_key: str):
         "recent_logs": recent_logs
     }
 
+# --- Tenant Key Management Endpoints ---
 @app.post("/api/v1/keys/new")
 def create_free_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -528,19 +497,27 @@ async def process_cell(req: ProcessRequest):
 
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
-        try:
-            result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)
-        except Exception:
+        
+        # If user passed custom Groq key
+        if req.api_key and req.api_key.startswith("gsk_"):
             try:
-                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt)
+                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
+            except Exception as ge:
+                raise HTTPException(status_code=400, detail=f"Your Groq API Key failed: {str(ge)}")
+        else:
+            try:
+                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)
             except Exception:
                 try:
-                    result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt)
+                    result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt)
                 except Exception:
                     try:
-                        result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt)
-                    except Exception as e:
-                        raise HTTPException(status_code=503, detail=f"Inference cluster busy: {str(e)}")
+                        result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt)
+                    except Exception:
+                        try:
+                            result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt)
+                        except Exception as e:
+                            raise HTTPException(status_code=503, detail=f"Inference cluster busy: {str(e)}")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

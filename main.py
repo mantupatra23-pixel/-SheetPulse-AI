@@ -5,8 +5,7 @@ import hmac
 import hashlib
 import asyncio
 import sqlite3
-import urllib.request
-import urllib.error
+import requests
 import json
 import uuid
 from typing import List, Optional, Dict, Any, Tuple
@@ -26,7 +25,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="23.0.0",
+    version="24.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -39,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 3 Backend Keys from Render Environment ---
+# --- Cluster API Keys ---
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
@@ -216,7 +215,7 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
             return {"owner": "Workspace User", "tier": "free", "remaining": 100 - amount}
 
         if not row:
-            raise HTTPException(status_code=401, detail="Invalid API Key. Please generate a key.")
+            raise HTTPException(status_code=401, detail="Invalid API Key. Please generate a valid key.")
 
         owner_name, tier, credits_left, total_used = row[0], row[1], row[2], row[3]
         if tier not in ["developer", "byok"] and credits_left < amount:
@@ -266,16 +265,15 @@ def fetch_url_text(url: str) -> str:
         clean_url = url.strip().strip('"\'')
         if not clean_url.startswith(('http://', 'https://')):
             clean_url = 'https://' + clean_url
-        req = urllib.request.Request(
-            clean_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        )
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            html = resp.read().decode('utf-8', errors='ignore')
-            text = re.sub(r'<script.*?</script>|<style.*?</style>|<header.*?</header>|<footer.*?</footer>|<nav.*?</nav>', '', html, flags=re.DOTALL)
-            text = re.sub(r'<[^>]+>', ' ', text)
-            clean_text = ' '.join(text.split())
-            return clean_text[:3500] if clean_text else "Empty content."
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        res = requests.get(clean_url, headers=headers, timeout=8)
+        html = res.text
+        text = re.sub(r'<script.*?</script>|<style.*?</style>|<header.*?</header>|<footer.*?</footer>|<nav.*?</nav>', '', html, flags=re.DOTALL)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        clean_text = ' '.join(text.split())
+        return clean_text[:3500] if clean_text else "Empty web content."
     except Exception as e:
         return f"Scrape Notice: ({str(e)})"
 
@@ -335,31 +333,36 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# --- PROVIDER 1: CEREBRAS (Ultra-Fast Hardware) ---
+# ================= 3 HARDENED AI ENGINE ADAPTERS =================
+
+# 1. Cerebras Hardware Cloud (Sub-0.2s)
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
         raise ValueError("Cerebras unconfigured")
+    
     url = "https://api.cerebras.ai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     payload = {
         "model": "llama3.1-8b",
         "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
         "temperature": 0.05,
         "max_tokens": 150
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
-    )
-    with urllib.request.urlopen(req, timeout=8) as resp:
-        res = json.loads(resp.read().decode())
-        out = clean_output(res["choices"][0]["message"]["content"])
-        if not out:
-            raise ValueError("Empty output from Cerebras")
-        return out, "Cerebras:Llama-3.1-8b"
+    resp = requests.post(url, headers=headers, json=payload, timeout=8)
+    if resp.status_code != 200:
+        raise ValueError(f"Cerebras HTTP {resp.status_code}: {resp.text}")
+    res = resp.json()
+    out = clean_output(res["choices"][0]["message"]["content"])
+    if not out:
+        raise ValueError("Empty output from Cerebras")
+    return out, "Cerebras:Llama-3.1-8b"
 
-# --- PROVIDER 2: GROQ (High Throughput) ---
+# 2. Groq Hardware Cloud
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not effective_key:
@@ -380,13 +383,22 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
             continue
     raise ValueError("Groq models exhausted")
 
-# --- PROVIDER 3: OPENROUTER (Resilient Multi-Model Pool) ---
+# 3. OpenRouter Global Cloud Pool
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
         raise ValueError("OpenRouter unconfigured")
+    
     url = "https://openrouter.ai/api/v1/chat/completions"
-    for model in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-8b-instruct:free", "meta-llama/llama-3.3-70b-instruct"]:
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sheetpulseai.onrender.com",
+        "X-Title": "SheetPulse AI",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    models = ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-8b-instruct:free", "qwen/qwen-2.5-72b-instruct"]
+    for model in models:
         try:
             payload = {
                 "model": model,
@@ -394,42 +406,15 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                 "temperature": 0.05,
                 "max_tokens": 150
             }
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {key}",
-                    "HTTP-Referer": "https://sheetpulseai.onrender.com",
-                    "X-Title": "SheetPulse AI"
-                }
-            )
-            with urllib.request.urlopen(req, timeout=9) as resp:
-                res = json.loads(resp.read().decode())
+            resp = requests.post(url, headers=headers, json=payload, timeout=9)
+            if resp.status_code == 200:
+                res = resp.json()
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"OpenRouter:{model.split('/')[-1]}"
         except Exception:
             continue
     raise ValueError("OpenRouter models exhausted")
-
-# --- PROVIDER 4: OPTIONAL GEMINI (Only if user brings AIza key or env is set) ---
-def _sync_gemini_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    effective_key = custom_key if (custom_key and custom_key.startswith("AIza")) else GEMINI_API_KEY
-    if not effective_key:
-        raise ValueError("Gemini key unconfigured")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={effective_key}"
-    payload = {
-        "contents": [{"parts": [{"text": f"{sys_prompt}\n\n{usr_prompt}"}]}],
-        "generationConfig": {"temperature": 0.05, "maxOutputTokens": 150}
-    }
-    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=9) as response:
-        res = json.loads(response.read().decode())
-        out = clean_output(res["candidates"][0]["content"]["parts"][0]["text"])
-        if not out:
-            raise ValueError("Empty output from Gemini")
-        return out, "Google:Gemini-1.5-Flash"
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -483,7 +468,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "23.0.0",
+        "version": "24.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -614,7 +599,7 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
-# --- PROCESS CELL CASCADE (Cerebras -> Groq -> OpenRouter) ---
+# --- INTELLIGENT ROUTING & COMPLETE 3-ENGINE EXECUTION ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -628,7 +613,7 @@ async def process_cell(req: ProcessRequest):
 
     verify_and_deduct_credits(effective_key, amount=1)
 
-    # 1. Regex UltraFast Extractor Bypass
+    # 1. Regex UltraFast Extractor
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -653,15 +638,15 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Priority Routing for explicit BYOK keys
-        if effective_key.startswith("gsk_"):
-            try:
-                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
-            except Exception:
-                pass
-        elif effective_key.startswith("csk-"):
+        # Priority BYOK Keys (Direct user key routing)
+        if effective_key.startswith("csk-"):
             try:
                 result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt, effective_key)
+            except Exception:
+                pass
+        elif effective_key.startswith("gsk_"):
+            try:
+                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
             except Exception:
                 pass
         elif effective_key.startswith("sk-"):
@@ -669,31 +654,31 @@ async def process_cell(req: ProcessRequest):
                 result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt, effective_key)
             except Exception:
                 pass
-        elif effective_key.startswith("AIza"):
-            try:
-                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, effective_key)
-            except Exception:
-                pass
 
-        # Backend Cluster Cascade: Cerebras -> Groq -> OpenRouter -> Gemini
+        # Intelligent Dynamic Workload Distribution Across 3 APIs
         if not result:
-            try:
-                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)
-            except Exception:
+            act = req.action.lower()
+            
+            # Action Route A: Fast Operations -> Cerebras First
+            if act in ["clean", "extract"]:
+                pipeline = [_sync_cerebras_call, _sync_groq_call, _sync_openrouter_call]
+            # Action Route B: Reasoning / Fix Formulas -> Groq First
+            elif act in ["classify", "fix_formula"]:
+                pipeline = [_sync_groq_call, _sync_cerebras_call, _sync_openrouter_call]
+            # Action Route C: Web Scraper & Long Prompts -> OpenRouter First
+            else:
+                pipeline = [_sync_openrouter_call, _sync_groq_call, _sync_cerebras_call]
+
+            for engine_func in pipeline:
                 try:
-                    result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt)
+                    result, provider = await asyncio.to_thread(engine_func, sys_prompt, usr_prompt)
+                    if result:
+                        break
                 except Exception:
-                    try:
-                        result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt)
-                    except Exception:
-                        if GEMINI_API_KEY:
-                            try:
-                                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt)
-                            except Exception:
-                                pass
+                    continue
 
         if not result:
-            raise HTTPException(status_code=503, detail="Inference cluster busy. Please retry.")
+            raise HTTPException(status_code=503, detail="Cluster inference busy. Please retry.")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

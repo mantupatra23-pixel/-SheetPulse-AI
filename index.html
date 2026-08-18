@@ -10,6 +10,9 @@
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://sheetpulseai.onrender.com/">
 
+  <!-- Razorpay Checkout SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -50,11 +53,6 @@
     .hero-glow {
       box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.18), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
     }
-    .drag-selection-box {
-      border: 2px dashed #10b981;
-      background-color: rgba(16, 185, 129, 0.08);
-      transition: height 0.4s ease-in-out;
-    }
   </style>
 </head>
 <body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col">
@@ -70,7 +68,6 @@
       </a>
     </div>
 
-    <!-- Desktop Navigation Links -->
     <nav class="hidden lg:flex items-center gap-7 text-xs font-bold text-slate-600">
       <a href="#templates" class="hover:text-emerald-600 transition-colors">Starter Templates</a>
       <a href="#workflows" class="hover:text-emerald-600 transition-colors">Workflows</a>
@@ -80,10 +77,9 @@
       <a href="/docs" class="hover:text-emerald-600 transition-colors">Docs</a>
     </nav>
 
-    <!-- Right Header Actions -->
     <div class="flex items-center gap-2 sm:gap-3">
-      <a href="#templates" class="hidden sm:inline-flex px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 border border-emerald-300 transition-all">
-        📂 Template Hub
+      <a href="#pricing" class="hidden sm:inline-flex px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 border border-emerald-300 transition-all">
+        ⚡ Get Pro
       </a>
       <a href="#integration" class="px-4 py-1.5 rounded-lg text-xs font-extrabold text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/70 hover:border-emerald-400 shadow-sm transition-all">
         Get API Key
@@ -94,13 +90,13 @@
     </div>
   </header>
 
-  <!-- Mobile Dropdown Menu -->
+  <!-- Mobile Dropdown -->
   <div id="mobileNavMenu" class="hidden lg:hidden bg-white border-b border-slate-200 px-6 py-4 space-y-3 text-xs font-bold text-slate-700 shadow-lg">
     <a href="#templates" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 text-emerald-700 font-extrabold">📂 1-Click Starter Templates</a>
     <a href="#workflows" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Workflows</a>
     <a href="#roi" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">ROI Calculator</a>
     <a href="#playground" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">Live Playground</a>
-    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Pricing</a>
+    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Pricing & Plans</a>
     <a href="/docs" class="block py-2 text-indigo-700 font-extrabold">📖 Documentation Portal</a>
   </div>
 
@@ -122,23 +118,21 @@
       </p>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-        <a href="#integration" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all">
-          🔑 Generate Free API Key
+        <a href="#pricing" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
+          <span>⚡</span> <span>Upgrade to Pro ($12/mo)</span>
         </a>
-        <button onclick="openStarterTemplate()" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all">
-          📊 Open Sheets Template
-        </button>
+        <a href="#integration" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all">
+          Generate Free Key (100 Credits)
+        </a>
       </div>
 
       <p class="text-xs text-slate-500 font-mono">
-        ✓ 100 Initial Credits Included &bull; <span class="text-emerald-700 font-bold">No Credit Card Needed</span> &bull; Sub-Second Latency
+        ✓ 100% Secure Checkout (UPI, Cards, NetBanking) &bull; <span class="text-emerald-700 font-bold">Instant Activation</span> &bull; 24/7 Uptime
       </p>
 
-      <!-- LIVE ANIMATED DRAG-DOWN SPREADSHEET PREVIEW -->
+      <!-- Live Animated Drag-Down Table -->
       <article class="pt-4 max-w-4xl mx-auto text-left">
         <div class="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-6 hero-glow relative overflow-hidden">
-          
-          <!-- Top Window Header -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 mb-3 gap-2">
             <div class="flex items-center gap-2">
               <span class="w-3 h-3 rounded-full bg-rose-400"></span>
@@ -150,308 +144,85 @@
             <div class="flex items-center gap-2">
               <span id="animStatusBadge" class="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 font-bold text-xs flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span id="animStatusText">Ready: Dragging Formula Down...</span>
+                <span id="animStatusText">Dragging Formula Down...</span>
               </span>
-              <button onclick="restartDragAnimation()" title="Replay live animation demo" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 transition-colors">
-                ↻ Replay
-              </button>
+              <button onclick="runDragDownAnimation()" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200">↻ Replay</button>
             </div>
           </div>
 
-          <!-- Formula Bar -->
           <div class="flex items-center gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 text-xs font-mono mb-3">
             <span class="text-emerald-600 font-extrabold text-sm">fx</span>
             <span class="text-slate-800 font-bold">=AI_EXTRACT(A2, "CEO email address")</span>
           </div>
 
-          <!-- Table Container with Animated Selection Handle -->
           <div class="overflow-x-auto relative">
             <table class="w-full text-xs font-mono border-collapse bg-white rounded-lg overflow-hidden border border-slate-200">
               <thead>
                 <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
                   <th class="p-2.5 w-12 text-center border-r border-slate-200">#</th>
-                  <th class="p-2.5 text-left border-r border-slate-200 w-1/2">A &bull; Raw Bio / Web Scraped Dump</th>
-                  <th class="p-2.5 text-left text-emerald-800 font-bold bg-emerald-50/60">B &bull; SheetPulse AI Formula Output</th>
+                  <th class="p-2.5 text-left border-r border-slate-200 w-1/2">A &bull; Raw Bio / Web Content</th>
+                  <th class="p-2.5 text-left text-emerald-800 font-bold bg-emerald-50/60">B &bull; SheetPulse AI Output</th>
                   <th class="p-2.5 text-center w-24 text-slate-500">Status</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-slate-700">
-                
-                <!-- Row 2 (Initial Seed Cell) -->
-                <tr class="hover:bg-slate-50/70">
+                <tr>
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">2</td>
                   <td class="p-2.5 border-r border-slate-200">Contact Alex (Founder): alex.h@finscale.io | Book call</td>
                   <td id="cell-b2" class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold relative">
                     alex.h@finscale.io
-                    <!-- Fill Handle Dot -->
                     <span id="fillHandle" class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-600 border border-white cursor-crosshair z-20"></span>
                   </td>
                   <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Ready</td>
                 </tr>
-
-                <!-- Row 3 (Animated Target 1) -->
-                <tr class="hover:bg-slate-50/70 transition-colors">
+                <tr>
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">3</td>
                   <td class="p-2.5 border-r border-slate-200">For enterprise inquiries contact ceo-office@retailpro.com</td>
-                  <td id="cell-b3" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
-                    <span class="text-slate-300 font-normal">--</span>
-                  </td>
+                  <td id="cell-b3" class="p-2.5 font-bold text-slate-400">--</td>
                   <td id="status-r3" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
                 </tr>
-
-                <!-- Row 4 (Animated Target 2) -->
-                <tr class="hover:bg-slate-50/70 transition-colors">
+                <tr>
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">4</td>
                   <td class="p-2.5 border-r border-slate-200">Sarah Jenkins (Chief Growth) &bull; s.jenkins@hypercloud.dev</td>
-                  <td id="cell-b4" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
-                    <span class="text-slate-300 font-normal">--</span>
-                  </td>
+                  <td id="cell-b4" class="p-2.5 font-bold text-slate-400">--</td>
                   <td id="status-r4" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
                 </tr>
-
-                <!-- Row 5 (Animated Target 3) -->
-                <tr class="hover:bg-slate-50/70 transition-colors">
+                <tr>
                   <td class="p-2.5 text-center text-slate-400 bg-slate-50">5</td>
                   <td class="p-2.5 border-r border-slate-200">Marcus Vance &bull; VP Outbound &bull; m.vance@novab2b.tech</td>
-                  <td id="cell-b5" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
-                    <span class="text-slate-300 font-normal">--</span>
-                  </td>
+                  <td id="cell-b5" class="p-2.5 font-bold text-slate-400">--</td>
                   <td id="status-r5" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
                 </tr>
-
-                <!-- Row 6 (Animated Target 4) -->
-                <tr class="hover:bg-slate-50/70 transition-colors">
-                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">6</td>
-                  <td class="p-2.5 border-r border-slate-200">Direct founder line: priya.s@growthloop.ai (HQ London)</td>
-                  <td id="cell-b6" class="p-2.5 font-bold transition-all duration-300 text-slate-400">
-                    <span class="text-slate-300 font-normal">--</span>
-                  </td>
-                  <td id="status-r6" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
-                </tr>
-
               </tbody>
             </table>
 
-            <!-- Simulated Mouse Cursor Element -->
             <div id="simulatedCursor" class="absolute pointer-events-none z-30 transition-all duration-700 ease-out flex items-center gap-1 opacity-0">
               <svg class="w-5 h-5 text-slate-900 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11.5-5.5 1.5 3.5 6.5-2.5 1.5-3.5-6.5-4 4V2z"/></svg>
-              <span class="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">Drag 4 Rows</span>
+              <span class="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">Drag 3 Rows</span>
             </div>
           </div>
         </div>
       </article>
-
     </section>
 
-    <!-- 1-Click Starter Hub -->
-    <section id="templates" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
-      <div class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200 font-mono">1-Click Starter Hub</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Pre-Built Google Sheets Templates</h2>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="p-6 rounded-3xl bg-white border border-emerald-300 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-2xl">🎯</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">POPULAR</span>
-            </div>
-            <h3 class="text-base font-extrabold text-slate-900">B2B Lead Enrichment Sheet</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Extract founder emails, phone numbers, and company size from messy prospect notes.</p>
-          </div>
-          <button onclick="openStarterTemplate('Lead_Enrichment')" class="w-full py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 flex items-center justify-center gap-1.5 transition-all">
-            <span>Copy Lead Sheet</span> ↗
-          </button>
-        </div>
-
-        <div class="p-6 rounded-3xl bg-white border border-indigo-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-2xl">🛍️</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full">E-COMMERCE</span>
-            </div>
-            <h3 class="text-base font-extrabold text-slate-900">E-Com Catalog & Title Factory</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Generate high-ranking Amazon/Shopify titles, feature bullet points, and multi-language copy.</p>
-          </div>
-          <button onclick="openStarterTemplate('Ecom_Catalog')" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center gap-1.5 transition-all">
-            <span>Copy Catalog Sheet</span> ↗
-          </button>
-        </div>
-
-        <div class="p-6 rounded-3xl bg-white border border-violet-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-2xl">🏷️</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-violet-100 text-violet-800 rounded-full">OPERATIONS</span>
-            </div>
-            <h3 class="text-base font-extrabold text-slate-900">Support & Feedback Classifier</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Auto-triage thousands of customer tickets into Bug, Billing, Urgent, or Refund.</p>
-          </div>
-          <button onclick="openStarterTemplate('Feedback_Classifier')" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center gap-1.5 transition-all">
-            <span>Copy Classifier Sheet</span> ↗
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Workflows Grid -->
-    <section id="workflows" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
-      <div class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">High-ROI Use Cases</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">What Will You Automate Today?</h2>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-5 rounded-2xl bg-white border border-emerald-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-base font-bold">🎯</span>
-          <h3 class="font-bold text-slate-900 text-sm">B2B Lead Enrichment</h3>
-          <p class="text-xs text-slate-600">Extract direct CEO emails, phone numbers, and founder names from dirty web scrapes.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-emerald-700 font-semibold">=AI_EXTRACT(A2, "CEO email")</div>
-        </div>
-
-        <div class="p-5 rounded-2xl bg-white border border-indigo-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-bold">🛍️</span>
-          <h3 class="font-bold text-slate-900 text-sm">E-Commerce Catalogs</h3>
-          <p class="text-xs text-slate-600">Generate 2,000 SEO product titles, bullet points, and translations in bulk.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-indigo-700 font-semibold">=SHEETPULSE(A2, "SEO Title")</div>
-        </div>
-
-        <div class="p-5 rounded-2xl bg-white border border-violet-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-base font-bold">🏷️</span>
-          <h3 class="font-bold text-slate-900 text-sm">Feedback Classification</h3>
-          <p class="text-xs text-slate-600">Tag 10,000 Zendesk or App Store reviews into Bug, Refund, Feature Request automatically.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-violet-700 font-semibold">=AI_CLASSIFY(A2, "Bug, Refund")</div>
-        </div>
-
-        <div class="p-5 rounded-2xl bg-white border border-amber-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-base font-bold">🌐</span>
-          <h3 class="font-bold text-slate-900 text-sm">Competitor Scraping</h3>
-          <p class="text-xs text-slate-600">Give any competitor URL and automatically pull pricing, taglines, or product specs.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-amber-700 font-semibold">=AI_SCRAPE(A2, "Extract Price")</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ROI Calculator -->
-    <section id="roi" class="max-w-4xl mx-auto px-4 py-14">
-      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 card-shadow space-y-5">
-        <div class="text-center space-y-1">
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">ROI Calculator</span>
-          <h2 class="text-2xl font-extrabold text-slate-900">How Much Time & Money Will You Save?</h2>
-        </div>
-
-        <div class="space-y-3 pt-2">
-          <div class="flex items-center justify-between text-xs font-bold text-slate-700">
-            <span>Rows you process per month:</span>
-            <span id="rowCountLabel" class="text-emerald-700 font-mono text-base font-extrabold">2,500 rows</span>
-          </div>
-          <input type="range" id="rowSlider" min="500" max="25000" step="500" value="2500" oninput="calculateROI()" class="w-full accent-emerald-600 cursor-pointer">
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <p class="text-xs text-slate-500 font-semibold">Manual Copy-Paste</p>
-            <p id="manualTime" class="text-xl font-black text-rose-600 mt-1">21 Hours</p>
-          </div>
-          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-            <p class="text-xs text-emerald-800 font-semibold">With SheetPulse AI</p>
-            <p id="sheetpulseTime" class="text-xl font-black text-emerald-700 mt-1">45 Seconds</p>
-          </div>
-          <div class="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-center">
-            <p class="text-xs text-indigo-800 font-semibold">Estimated Savings</p>
-            <p id="moneySaved" class="text-xl font-black text-indigo-700 mt-1">$630 / mo</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Live Formula Playground -->
-    <section id="playground" class="max-w-6xl mx-auto px-4 py-14">
-      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 hero-glow space-y-6">
-        <header class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-1">
-              🧪 Web Demo Sandbox
-            </div>
-            <h2 class="text-2xl font-extrabold text-slate-900">Try Real Spreadsheet Formulas Now</h2>
-          </div>
-          <div class="text-left md:text-right font-mono text-xs text-slate-600">
-            <span class="text-emerald-600 font-bold">Sandbox Mode:</span> Active
-          </div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-6 space-y-3.5">
-            <div>
-              <label for="playAction" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Select Formula</label>
-              <select id="playAction" onchange="updatePlaygroundTemplate()" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono font-medium">
-                <option value="clean">=AI_CLEAN(cell) &bull; Standardize casing, spaces & dirty data</option>
-                <option value="extract">=AI_EXTRACT(cell, target) &bull; Extract emails, phones, prices</option>
-                <option value="classify">=AI_CLASSIFY(cell, tags) &bull; Tag customer feedback & sentiment</option>
-                <option value="fix_formula">=AI_FIX(formula, goal) &bull; Repair broken sheets formulas</option>
-                <option value="scrape">=AI_SCRAPE(url, question) &bull; Scrape website data into cell</option>
-                <option value="custom">=SHEETPULSE(cell, prompt) &bull; Custom AI prompt execution</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="playText" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Cell Input Data</label>
-              <textarea id="playText" rows="3" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="Input string..."></textarea>
-            </div>
-
-            <div>
-              <label for="playInstruction" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Instruction / Target</label>
-              <input id="playInstruction" type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="Instruction...">
-            </div>
-
-            <button id="runBtn" onclick="runPlayground()" class="w-full py-3 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
-              <span>⚡ Test in Sandbox</span>
-            </button>
-          </div>
-
-          <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                <div class="flex items-center gap-2 text-xs font-mono text-slate-700 font-bold">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                  <span>COMPUTED CELL OUTPUT</span>
-                </div>
-                <span id="telemetryBadge" class="text-xs font-mono text-slate-500 font-bold">Ready</span>
-              </div>
-
-              <div id="outputContainer" class="text-emerald-800 font-mono text-sm sm:text-base font-bold break-words min-h-[120px] flex items-center justify-center text-center p-4 bg-white rounded-xl border border-slate-200 shadow-inner">
-                Select a formula and click "Test in Sandbox"
-              </div>
-            </div>
-
-            <div class="pt-2.5 border-t border-slate-200 text-xs font-mono text-slate-600 flex items-center justify-between">
-              <span id="providerUsed">Engine: Ready</span>
-              <span id="execSpeed">Latency: 0.00s</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Pricing Section -->
+    <!-- PRICING TIERS & REAL CHECKOUT -->
     <section id="pricing" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
       <header class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Pricing</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Simple, Transparent Plans</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Live Checkout</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Simple, High-ROI Pricing</h2>
       </header>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between space-y-5 card-shadow">
           <div class="space-y-3">
-            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">FREE STARTER</span>
-            <h3 class="text-lg font-bold text-slate-900">Free Key (BYOK)</h3>
+            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">FREE FOREVER</span>
+            <h3 class="text-lg font-bold text-slate-900">Starter Free</h3>
             <div class="text-3xl font-black text-slate-900">$0 <span class="text-xs font-normal text-slate-500">/ forever</span></div>
-            <p class="text-xs text-slate-600">Get your private key with 100 free cloud credits, or plug your own LLM keys.</p>
+            <p class="text-xs text-slate-600">Get your private key with 100 free cloud credits or BYOK.</p>
             <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
               <li>✓ 100 Initial Cloud Credits</li>
               <li>✓ All custom functions included</li>
-              <li>✓ Zero credit deductions on BYOK</li>
+              <li>✓ Unlimited calculations on BYOK</li>
             </ul>
           </div>
           <a href="#integration" class="w-full py-2.5 rounded-xl font-bold text-xs text-center text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 block">Generate Free Key</a>
@@ -460,65 +231,61 @@
         <div class="p-6 rounded-3xl bg-white border-2 border-emerald-500 flex flex-col justify-between space-y-5 hero-glow relative">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">PRO STARTER</span>
-              <span class="text-[10px] font-black uppercase text-white bg-emerald-600 px-2 py-0.5 rounded-full">Popular</span>
+              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">PRO PLAN</span>
+              <span class="text-[10px] font-black uppercase text-white bg-emerald-600 px-2 py-0.5 rounded-full">Most Popular</span>
             </div>
             <h3 class="text-lg font-bold text-slate-900">Hosted Pro</h3>
-            <div class="text-3xl font-black text-slate-900">$12 <span class="text-xs font-normal text-slate-500">/ month</span></div>
-            <p class="text-xs text-slate-600">Pre-allocated high-speed private quota. Zero LLM keys to configure.</p>
+            <div class="text-3xl font-black text-slate-900">$12 <span class="text-xs font-normal text-slate-500">/ month (~₹999)</span></div>
+            <p class="text-xs text-slate-600">Pre-allocated high-speed private quota. Instant activation.</p>
             <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
               <li>✓ 5,000 cell credits / month</li>
               <li>✓ Sub-second neural hardware</li>
-              <li>✓ Live web scraping & formula repair</li>
+              <li>✓ Live URL web scraping & formula repair</li>
             </ul>
           </div>
-          <button onclick="openPaymentModal('Hosted Pro', '$12/mo', 5000)" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400">Activate Pro Key</button>
+          <!-- Real Checkout Trigger Button -->
+          <button onclick="openPaymentModal('Hosted Pro', 'pro', '₹999 ($12/mo)')" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 flex items-center justify-center gap-1.5">
+            <span>💳 Pay with Razorpay</span>
+          </button>
         </div>
 
         <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between space-y-5 card-shadow">
           <div class="space-y-3">
-            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">AGENCY SCALE</span>
+            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">SCALE MATRIX</span>
             <h3 class="text-lg font-bold text-slate-900">Agency & Business</h3>
-            <div class="text-3xl font-black text-slate-900">$29 <span class="text-xs font-normal text-slate-500">/ month</span></div>
-            <p class="text-xs text-slate-600">High-volume parallel batch matrix processing for agencies and lead teams.</p>
+            <div class="text-3xl font-black text-slate-900">$29 <span class="text-xs font-normal text-slate-500">/ month (~₹2,499)</span></div>
+            <p class="text-xs text-slate-600">High-volume parallel batch matrix processing for agencies.</p>
             <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
               <li>✓ 30,000 cell credits / month</li>
               <li>✓ Parallel batch matrix endpoint</li>
-              <li>✓ Priority support</li>
+              <li>✓ 24/7 Priority Support</li>
             </ul>
           </div>
-          <button onclick="openPaymentModal('Agency Business', '$29/mo', 30000)" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300">Activate Agency Key</button>
+          <button onclick="openPaymentModal('Agency Business', 'agency', '₹2,499 ($29/mo)')" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300">
+            <span>💳 Pay with Razorpay</span>
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- Setup Integration & Dynamic Key Vault -->
+    <!-- Dynamic Key Vault & Apps Script Section -->
     <section id="integration" class="max-w-6xl mx-auto px-4 py-14 space-y-6">
       <header class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Private Integration</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Generate Your Secret Key</h2>
-        <p class="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto font-medium">Create your key on the left &mdash; it will automatically inject into the code on the right for 1-click copying.</p>
+        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Integration</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Connect To Google Sheets</h2>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div class="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 card-shadow">
-          <h3 class="text-base font-bold text-slate-900">🔑 Step 1: Generate Tenant Key</h3>
+          <h3 class="text-base font-bold text-slate-900">🔑 Free API Key Generator</h3>
           <div class="space-y-3">
             <div>
               <label for="keyOwner" class="block text-xs font-bold text-slate-700 mb-1">Your Name / Workspace</label>
               <input id="keyOwner" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2 text-xs font-mono">
             </div>
 
-            <div>
-              <label for="keyTier" class="block text-xs font-bold text-slate-700 mb-1">Plan Tier</label>
-              <select id="keyTier" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2 text-xs font-medium">
-                <option value="free">Free Starter (100 Cloud Credits)</option>
-                <option value="pro">Pro Developer (5,000 Credits)</option>
-              </select>
-            </div>
-
-            <button onclick="generateKey()" class="w-full py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400">
-              + Generate Secret Key
+            <button onclick="generateFreeKey()" class="w-full py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400">
+              + Generate Free Key (100 Credits)
             </button>
             <div id="keyResult" class="hidden p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-mono text-emerald-900 break-all"></div>
           </div>
@@ -527,16 +294,16 @@
         <div class="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 card-shadow">
           <div class="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
-              <h3 class="text-base font-bold text-slate-900">📋 Step 2: Copy Apps Script Code</h3>
-              <p id="activeKeyIndicator" class="text-[11px] text-slate-500 font-mono">Key Status: <span class="text-amber-600 font-bold">Waiting for Key Generation</span></p>
+              <h3 class="text-base font-bold text-slate-900">📋 Apps Script Client Code</h3>
+              <p id="activeKeyIndicator" class="text-[11px] text-slate-500 font-mono">Key: <span class="text-amber-600 font-bold">Waiting for Key Generation or Payment</span></p>
             </div>
             <button onclick="copyAppsScript()" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 shadow-sm flex items-center gap-1">
               <span>Copy Code</span> 📋
             </button>
           </div>
 
-          <pre id="codeSnippetBox" class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 h-60 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
-const SHEETPULSE_API_KEY = "YOUR_API_KEY_HERE"; // Generate your key on the left to auto-fill
+          <pre id="codeSnippetBox" class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 h-56 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+const SHEETPULSE_API_KEY = "YOUR_API_KEY_HERE"; // Complete checkout or generate key above to auto-fill
 
 function SHEETPULSE(text, instruction) { return callSheetPulse(text, instruction, "custom"); }
 function AI_CLEAN(text) { return callSheetPulse(text, "clean", "clean"); }
@@ -548,7 +315,7 @@ function AI_SCRAPE(url, question) { return callSheetPulse(url, question, "scrape
 function callSheetPulse(text, inst, action) {
   if (!text) return "";
   if (!SHEETPULSE_API_KEY || SHEETPULSE_API_KEY === "YOUR_API_KEY_HERE") {
-    return "Error: Please generate and paste your SheetPulse API key.";
+    return "Error: Please generate or activate your SheetPulse API key.";
   }
   const payload = {
     text: String(text),
@@ -571,40 +338,7 @@ function callSheetPulse(text, inst, action) {
 
   </main>
 
-  <!-- 1-Click Starter Template Modal -->
-  <div id="templateModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
-      <button onclick="closeTemplateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
-
-      <div class="space-y-1">
-        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Instant Setup</span>
-        <h3 id="templateModalTitle" class="text-xl font-extrabold text-slate-900 mt-1">Open Starter Template</h3>
-        <p class="text-xs text-slate-600">Follow these 2 quick steps to copy and activate the template in your Google Drive:</p>
-      </div>
-
-      <div class="space-y-3 text-xs text-slate-700 font-medium">
-        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-          <strong class="text-slate-900">Step 1: Open Google Sheet Copy</strong>
-          <p class="text-slate-600">Click the button below to create a personal duplicate sheet in your Google Drive.</p>
-        </div>
-        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-          <strong class="text-slate-900">Step 2: Activate Your Private Key</strong>
-          <p class="text-slate-600">Inside the copied sheet, click <code>Extensions &gt; Apps Script</code>, paste your private code, and hit Save.</p>
-        </div>
-      </div>
-
-      <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
-        <a id="templateDirectLink" href="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/copy" target="_blank" class="w-full py-3 rounded-xl font-extrabold text-xs text-white text-center bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-md">
-          🚀 Make a Copy in Google Sheets
-        </a>
-        <button onclick="copyAppsScript()" class="w-full sm:w-auto px-4 py-3 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300">
-          Copy Code
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Payment Checkout Modal -->
+  <!-- RAZORPAY CHECKOUT MODAL -->
   <div id="paymentModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
       <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
@@ -613,22 +347,23 @@ function callSheetPulse(text, inst, action) {
         <span id="modalPlanBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Hosted Pro</span>
         <h3 class="text-xl font-extrabold text-slate-900 mt-1 flex items-baseline justify-between">
           <span id="modalPlanTitle">Hosted Pro Plan</span>
-          <span id="modalPlanPrice" class="text-emerald-600 text-lg font-mono font-bold">$12/mo</span>
+          <span id="modalPlanPrice" class="text-emerald-600 text-lg font-mono font-bold">₹999/mo</span>
         </h3>
+        <p class="text-xs text-slate-500 mt-1">Instant key generation upon successful payment.</p>
       </div>
 
       <div class="space-y-3 pt-1">
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Your Name</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Your Full Name</label>
           <input id="modalUser" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs font-mono">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Billing Email (For Invoice & Key)</label>
           <input id="modalEmail" type="email" placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs font-mono">
         </div>
 
-        <button onclick="processPlanCheckout()" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400">
-          ⚡ Activate & Inject Key Into Code
+        <button id="paySubmitBtn" onclick="launchRazorpayCheckout()" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-md">
+          ⚡ Proceed to Secure Payment
         </button>
 
         <div id="modalOutput" class="hidden p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-mono text-emerald-900 break-all space-y-1"></div>
@@ -641,126 +376,61 @@ function callSheetPulse(text, inst, action) {
     &copy; 2026 SheetPulse AI Engine &bull; Autonomous Spreadsheet Infrastructure
   </footer>
 
-  <!-- Frontend Logic & Animation Scripts -->
+  <!-- Scripts -->
   <script>
     let userSecretKey = "YOUR_API_KEY_HERE";
-    let dragAnimTimer = null;
+    let selectedTier = "pro";
 
     function toggleMobileNav() {
-      const menu = document.getElementById('mobileNavMenu');
-      menu.classList.toggle('hidden');
+      document.getElementById('mobileNavMenu').classList.toggle('hidden');
     }
 
-    function openStarterTemplate(type) {
-      const titles = {
-        'Lead_Enrichment': 'B2B Lead Enrichment Template',
-        'Ecom_Catalog': 'E-Commerce Catalog Generator Template',
-        'Feedback_Classifier': 'Customer Support Classifier Template'
-      };
-      if (type && titles[type]) {
-        document.getElementById('templateModalTitle').innerText = titles[type];
-      } else {
-        document.getElementById('templateModalTitle').innerText = 'SheetPulse AI Master Starter Template';
-      }
-      document.getElementById('templateModal').classList.remove('hidden');
-    }
-
-    function closeTemplateModal() {
-      document.getElementById('templateModal').classList.add('hidden');
-    }
-
-    // --- LIVE ANIMATED DRAG-DOWN PREVIEW ENGINE ---
+    // --- ANIMATED DRAG DOWN ENGINE ---
     const animatedRowData = [
       { id: 3, result: "ceo-office@retailpro.com", time: "0.18s" },
       { id: 4, result: "s.jenkins@hypercloud.dev", time: "0.22s" },
-      { id: 5, result: "m.vance@novab2b.tech", time: "0.25s" },
-      { id: 6, result: "priya.s@growthloop.ai", time: "0.31s" }
+      { id: 5, result: "m.vance@novab2b.tech", time: "0.25s" }
     ];
 
     function runDragDownAnimation() {
-      clearTimeout(dragAnimTimer);
       const cursor = document.getElementById('simulatedCursor');
       const handle = document.getElementById('fillHandle');
-      const badge = document.getElementById('animStatusBadge');
-      const badgeText = document.getElementById('animStatusText');
       const b2 = document.getElementById('cell-b2');
 
-      // Reset Target Rows
       animatedRowData.forEach(r => {
         const cell = document.getElementById('cell-b' + r.id);
         const status = document.getElementById('status-r' + r.id);
         if (cell) cell.innerHTML = '<span class="text-slate-300 font-normal">--</span>';
-        if (status) {
-          status.innerText = '-';
-          status.className = 'p-2.5 text-center text-slate-400 font-mono text-[11px]';
-        }
+        if (status) status.innerText = '-';
       });
 
       if (!b2 || !handle) return;
-
-      const rect = handle.getBoundingClientRect();
-      const parentRect = b2.offsetParent.getBoundingClientRect();
       const startX = handle.offsetLeft;
       const startY = handle.offsetTop;
 
-      // Phase 1: Cursor Moves to Fill Handle
       cursor.style.left = (startX - 10) + 'px';
       cursor.style.top = (startY - 10) + 'px';
       cursor.style.opacity = '1';
-      badgeText.innerText = 'Hovering Fill Handle...';
 
-      // Phase 2: Dragging Downwards
-      dragAnimTimer = setTimeout(() => {
-        cursor.style.top = (startY + 150) + 'px';
-        badgeText.innerText = 'Dragging Formula across 4 Rows...';
-
-        // Phase 3: Loading States Stagger
+      setTimeout(() => {
+        cursor.style.top = (startY + 120) + 'px';
         animatedRowData.forEach((r, idx) => {
           setTimeout(() => {
             const cell = document.getElementById('cell-b' + r.id);
             const status = document.getElementById('status-r' + r.id);
-            if (cell) cell.innerHTML = '<span class="text-emerald-600 animate-pulse">⚡ Computing...</span>';
-            if (status) {
-              status.innerText = 'Running';
-              status.className = 'p-2.5 text-center text-amber-500 font-mono text-[11px] font-bold animate-pulse';
-            }
-          }, 300 + (idx * 200));
-        });
-
-        // Phase 4: Sequential Instant Calculation Reveals
-        animatedRowData.forEach((r, idx) => {
-          setTimeout(() => {
-            const cell = document.getElementById('cell-b' + r.id);
-            const status = document.getElementById('status-r' + r.id);
-            if (cell) cell.innerHTML = '<span class="text-emerald-700 bg-emerald-50/40 px-1 py-0.5 rounded font-bold">' + r.result + '</span>';
+            if (cell) cell.innerHTML = '<span class="text-emerald-700 bg-emerald-50/40 px-1 rounded font-bold">' + r.result + '</span>';
             if (status) {
               status.innerText = '✓ ' + r.time;
               status.className = 'p-2.5 text-center text-emerald-600 font-mono text-[11px] font-bold';
             }
-          }, 1100 + (idx * 250));
+          }, 600 + (idx * 200));
         });
 
-        // Phase 5: Completion Badge & Fade Cursor
-        setTimeout(() => {
-          cursor.style.opacity = '0';
-          badgeText.innerText = '✓ 4 Rows Computed in 0.31s';
-          badge.className = 'text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 font-bold text-xs flex items-center gap-1.5 shadow-sm';
-        }, 2200);
-
-        // Auto-loop restart after 7.5 seconds
-        dragAnimTimer = setTimeout(runDragDownAnimation, 7500);
-
-      }, 800);
+        setTimeout(() => { cursor.style.opacity = '0'; }, 1800);
+      }, 700);
     }
 
-    function restartDragAnimation() {
-      runDragDownAnimation();
-    }
-
-    // Initialize drag-down animation on load
-    window.addEventListener('load', () => {
-      setTimeout(runDragDownAnimation, 600);
-    });
+    window.addEventListener('load', () => setTimeout(runDragDownAnimation, 600));
 
     function updateCodeBoxWithKey(key) {
       userSecretKey = key;
@@ -780,7 +450,7 @@ function AI_SCRAPE(url, question) { return callSheetPulse(url, question, "scrape
 function callSheetPulse(text, inst, action) {
   if (!text) return "";
   if (!SHEETPULSE_API_KEY || SHEETPULSE_API_KEY === "YOUR_API_KEY_HERE") {
-    return "Error: Please generate and paste your SheetPulse API key.";
+    return "Error: Please generate or activate your SheetPulse API key.";
   }
   const payload = {
     text: String(text),
@@ -801,114 +471,11 @@ function callSheetPulse(text, inst, action) {
       indicator.innerHTML = `Key Status: <span class="text-emerald-600 font-bold">Active (${key.substring(0, 10)}...)</span>`;
     }
 
-    const templates = {
-      clean: { text: "   mAntU   pAtRA   @  GMAIL . COM  ", inst: "clean" },
-      extract: { text: "For enterprise contact sales@scalehub.co or call +1-800-492-9102", inst: "email address" },
-      classify: { text: "My package was broken during transit and arrived 5 days late!", inst: "Complaint, Feedback, Urgent" },
-      fix_formula: { text: "=VLOOKUP(A2, B:C, 3, FALSE)", inst: "Fix index range error for 2-column array" },
-      scrape: { text: "https://news.ycombinator.com", inst: "Extract the current #1 trending headline title" },
-      custom: { text: "SheetPulse AI", inst: "Write a high-converting 4-word SaaS value proposition" }
-    };
-
-    function updatePlaygroundTemplate() {
-      const act = document.getElementById('playAction').value;
-      const t = templates[act] || templates.clean;
-      document.getElementById('playText').value = t.text;
-      document.getElementById('playInstruction').value = t.inst;
-    }
-
-    updatePlaygroundTemplate();
-
-    function calculateROI() {
-      const rows = parseInt(document.getElementById('rowSlider').value);
-      document.getElementById('rowCountLabel').innerText = rows.toLocaleString() + ' rows';
-      const manualHours = Math.round((rows * 30) / 3600);
-      const sheetpulseSec = Math.round((rows * 0.018));
-      const money = Math.round(manualHours * 30);
-      document.getElementById('manualTime').innerText = manualHours + ' Hours';
-      document.getElementById('sheetpulseTime').innerText = sheetpulseSec + ' Seconds';
-      document.getElementById('moneySaved').innerText = '$' + money.toLocaleString() + ' / mo';
-    }
-
-    calculateROI();
-
-    async function runPlayground() {
-      const btn = document.getElementById('runBtn');
-      const output = document.getElementById('outputContainer');
-      const providerBadge = document.getElementById('providerUsed');
-      const speedBadge = document.getElementById('execSpeed');
-      const telemetry = document.getElementById('telemetryBadge');
-      
-      const action = document.getElementById('playAction').value;
-      const text = document.getElementById('playText').value.trim();
-      const instruction = document.getElementById('playInstruction').value.trim();
-
-      if (!text) {
-        output.innerHTML = '<span class="text-amber-600 font-bold">Please provide input text.</span>';
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = '<span>⏳ Computing...</span>';
-      output.innerHTML = '<span class="text-slate-400 animate-pulse font-mono">Executing formula...</span>';
-      telemetry.innerText = 'Calculating';
-
-      const startTime = performance.now();
-
-      try {
-        const res = await fetch('/api/v1/process', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: 'sp_demo_live' })
-        });
-        const data = await res.json();
-        const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-
-        if (data.success) {
-          output.innerHTML = '<span class="text-emerald-700 font-bold">' + data.result + '</span>';
-          providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : '⚡ Neural Cloud');
-          speedBadge.innerText = 'Latency: ' + elapsed + 's';
-          telemetry.innerText = 'Completed';
-        } else {
-          output.innerHTML = '<span class="text-rose-600 font-bold">Error: ' + (data.detail || 'Failed') + '</span>';
-          telemetry.innerText = 'Error';
-        }
-      } catch (err) {
-        output.innerHTML = '<span class="text-rose-600 font-bold">Network Error: ' + err.message + '</span>';
-        telemetry.innerText = 'Network Error';
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<span>⚡ Test in Sandbox</span>';
-      }
-    }
-
-    async function generateKey() {
-      const owner = document.getElementById('keyOwner').value.trim() || 'User';
-      const tier = document.getElementById('keyTier').value;
-      const box = document.getElementById('keyResult');
-      box.classList.remove('hidden');
-      box.innerHTML = 'Allocating private key...';
-
-      try {
-        const res = await fetch('/api/v1/keys/new', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ owner_name: owner, tier: tier })
-        });
-        const data = await res.json();
-        box.innerHTML = '✅ <strong>Your Private Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected into Apps Script below!</div>';
-        
-        updateCodeBoxWithKey(data.api_key);
-      } catch (e) {
-        box.innerHTML = 'Error generating key.';
-      }
-    }
-
-    let currentModalPlan = 'pro';
-    function openPaymentModal(planName, price, credits) {
-      currentModalPlan = 'pro';
-      document.getElementById('modalPlanBadge').innerText = planName;
-      document.getElementById('modalPlanTitle').innerText = planName;
+    // --- PAYMENT GATEWAY TRIGGER ---
+    function openPaymentModal(title, tier, price) {
+      selectedTier = tier;
+      document.getElementById('modalPlanTitle').innerText = title;
+      document.getElementById('modalPlanBadge').innerText = tier.toUpperCase();
       document.getElementById('modalPlanPrice').innerText = price;
       document.getElementById('modalOutput').classList.add('hidden');
       document.getElementById('paymentModal').classList.remove('hidden');
@@ -918,24 +485,94 @@ function callSheetPulse(text, inst, action) {
       document.getElementById('paymentModal').classList.add('hidden');
     }
 
-    async function processPlanCheckout() {
-      const user = document.getElementById('modalUser').value.trim() || 'Workspace User';
+    async function launchRazorpayCheckout() {
+      const name = document.getElementById('modalUser').value.trim();
+      const email = document.getElementById('modalEmail').value.trim();
       const box = document.getElementById('modalOutput');
+      const btn = document.getElementById('paySubmitBtn');
+
+      if (!name || !email) {
+        alert("Please enter your Name and Email address.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Creating Payment Order...</span>';
+
+      try {
+        const orderRes = await fetch('/api/v1/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ owner_name: name, email: email, tier: selectedTier })
+        });
+        const orderData = await orderRes.json();
+
+        const options = {
+          key: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "SheetPulse AI",
+          description: selectedTier.toUpperCase() + " Subscription Key",
+          order_id: orderData.order_id,
+          prefill: { name: name, email: email },
+          theme: { color: "#10b981" },
+          handler: async function (response) {
+            box.classList.remove('hidden');
+            box.innerHTML = '⏳ Verifying Payment & Generating Key...';
+
+            const verifyRes = await fetch('/api/v1/payments/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id || orderData.order_id,
+                razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+                razorpay_signature: response.razorpay_signature || "demo_signature",
+                owner_name: name,
+                tier: selectedTier
+              })
+            });
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              box.innerHTML = '🎉 <strong>Payment Successful!</strong><br>Your Private Key:<br><code class="text-emerald-700 font-bold bg-white border border-emerald-300 p-1.5 rounded block my-1">' + verifyData.api_key + '</code><p class="text-[11px] text-slate-600">Key automatically injected into the Apps Script box below!</p>';
+              updateCodeBoxWithKey(verifyData.api_key);
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              btn.disabled = false;
+              btn.innerHTML = '⚡ Proceed to Secure Payment';
+            }
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        alert("Payment initialization error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ Proceed to Secure Payment';
+      }
+    }
+
+    async function generateFreeKey() {
+      const owner = document.getElementById('keyOwner').value.trim() || 'Workspace User';
+      const box = document.getElementById('keyResult');
       box.classList.remove('hidden');
-      box.innerHTML = '⏳ Activating your subscription...';
+      box.innerHTML = 'Allocating key...';
 
       try {
         const res = await fetch('/api/v1/keys/new', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ owner_name: user, tier: currentModalPlan })
+          body: JSON.stringify({ owner_name: owner, tier: 'free' })
         });
         const data = await res.json();
-        box.innerHTML = '🎉 <strong>Plan Activated!</strong><br><span class="text-slate-700">Your Key:</span><br><code class="text-emerald-700 font-bold bg-white border border-emerald-300 p-1 rounded block my-1">' + data.api_key + '</code>';
-        
+        box.innerHTML = '✅ <strong>Your Free Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected below!</div>';
         updateCodeBoxWithKey(data.api_key);
       } catch (e) {
-        box.innerHTML = '<span class="text-rose-600">Error activating plan.</span>';
+        box.innerHTML = 'Error generating key.';
       }
     }
 
@@ -943,9 +580,9 @@ function callSheetPulse(text, inst, action) {
       const code = document.getElementById('codeSnippetBox').textContent;
       navigator.clipboard.writeText(code);
       if (userSecretKey === "YOUR_API_KEY_HERE") {
-        alert("Copied! Remember to replace YOUR_API_KEY_HERE with your generated key.");
+        alert("Copied! Make sure to generate your API key or upgrade to Pro to activate.");
       } else {
-        alert("Copied code with your private API key injected!");
+        alert("Copied code with your active API key injected!");
       }
     }
   </script>

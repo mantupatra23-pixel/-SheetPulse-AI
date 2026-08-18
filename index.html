@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>SheetPulse AI &bull; Ready-to-Use Workflow Templates & Bulk Spreadsheet Intelligence</title>
-  <meta name="title" content="SheetPulse AI &bull; Ready-to-Use Workflow Templates & Bulk Spreadsheet Intelligence">
-  <meta name="description" content="Download 1-click workflow templates for Google Sheets. Bulk B2B lead enrichment, e-commerce catalog optimizer, feedback triage, and address cleaners.">
+  <title>SheetPulse AI &bull; Automate 10 Hours of Manual Sheet Work in 30 Seconds</title>
+  <meta name="title" content="SheetPulse AI &bull; Automate 10 Hours of Manual Sheet Work in 30 Seconds">
+  <meta name="description" content="The bulk AI automation engine for Google Sheets. Clean dirty data, scrape website leads, write personalized emails, and categorize thousands of rows in 1 click.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://sheetpulseai.onrender.com/">
 
-  <!-- Razorpay SDK -->
+  <!-- Razorpay Checkout SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-  <!-- Tailwind CSS & Fonts -->
+  <!-- Tailwind CSS & Google Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -58,7 +58,7 @@
 </head>
 <body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col">
 
-  <!-- ================= NAVBAR ================= -->
+  <!-- ================= TOP NAVBAR ================= -->
   <header class="sticky top-0 z-40 w-full border-b border-slate-200/90 bg-white/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-extrabold shadow-sm">
@@ -71,7 +71,7 @@
 
     <!-- Desktop Navigation Links -->
     <nav class="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-600">
-      <a href="#templates" class="hover:text-emerald-600 transition-colors">Templates Hub</a>
+      <a href="#templates" class="hover:text-emerald-600 transition-colors">Templates</a>
       <a href="#workflows" class="hover:text-emerald-600 transition-colors">Workflows</a>
       <a href="#roi" class="hover:text-indigo-600 transition-colors">ROI Calculator</a>
       <a href="#comparison" class="hover:text-emerald-600 transition-colors">Why Not ChatGPT?</a>
@@ -97,18 +97,18 @@
   <!-- Mobile Dropdown Navigation -->
   <div id="mobileNavMenu" class="hidden lg:hidden bg-white border-b border-slate-200 px-6 py-4 space-y-3 text-xs font-bold text-slate-700 shadow-lg">
     <button onclick="openDashboardModal(); toggleMobileNav();" class="block w-full text-left py-2 border-b border-slate-100 text-indigo-700 font-extrabold">📊 My Usage Dashboard</button>
-    <a href="#templates" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 text-emerald-700 font-extrabold">📂 Workflow Templates Hub</a>
+    <a href="#templates" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 text-emerald-700 font-extrabold">📂 1-Click Starter Templates</a>
     <a href="#workflows" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Workflows</a>
     <a href="#roi" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">ROI Calculator</a>
     <a href="#comparison" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Why Not ChatGPT?</a>
     <a href="#playground" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">Playground</a>
-    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Pricing</a>
+    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Pricing & Plans</a>
     <a href="/docs" class="block py-2 text-indigo-700 font-extrabold">📖 Documentation Portal</a>
   </div>
 
   <main class="w-full flex-1">
     
-    <!-- ================= 1. HERO SECTION & LIVE ANIMATION ================= -->
+    <!-- ================= 1. HERO SECTION & LIVE DRAG-DOWN PREVIEW ================= -->
     <section class="max-w-6xl mx-auto px-4 pt-12 pb-10 text-center space-y-6">
       <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-200 shadow-sm">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
@@ -120,20 +120,20 @@
       </h1>
 
       <p class="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
-        Pick a pre-configured template below, duplicate it to your Google Drive, or download the CSV template to run sub-second bulk AI operations across thousands of rows.
+        Don't copy-paste rows into ChatGPT one by one. Drag our formula handle down your column to auto-extract, clean, and enrich hundreds of rows simultaneously.
       </p>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-        <a href="#templates" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
-          <span>📂</span> <span>Explore 6 Ready-Made Templates</span>
+        <a href="#pricing" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
+          <span>⚡</span> <span>Upgrade to Pro ($12/mo)</span>
         </a>
-        <a href="#integration" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2">
-          <span>🔑</span> <span>Generate Free API Key</span>
+        <a href="#templates" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2">
+          <span>📂</span> <span>Explore 6 Ready Templates</span>
         </a>
       </div>
 
       <p class="text-xs text-slate-500 font-mono">
-        ✓ 1-Click CSV Downloads &bull; <span class="text-emerald-700 font-bold">Includes 10 Pre-loaded Formulas</span> &bull; 100% Free Starter Plan
+        ✓ 100 Initial Credits Included &bull; <span class="text-emerald-700 font-bold">Unlimited BYOK Keys</span> &bull; 100% Sheets Native
       </p>
 
       <!-- Live Animated Drag-Down Table -->
@@ -211,7 +211,7 @@
       </article>
     </section>
 
-    <!-- ================= 2. EXPANDED READY-TO-USE WORKFLOW TEMPLATES HUB ================= -->
+    <!-- ================= 2. 1-CLICK STARTER TEMPLATES HUB (6 WORKFLOWS) ================= -->
     <section id="templates" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
       <div class="text-center space-y-2">
         <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200 font-mono">1-Click Templates Hub</span>
@@ -433,7 +433,7 @@
       </div>
     </section>
 
-    <!-- ================= 5. COMPARISON MATRIX ================= -->
+    <!-- ================= 5. HEAD-TO-HEAD COMPARISON ================= -->
     <section id="comparison" class="max-w-5xl mx-auto px-4 py-14 space-y-6">
       <div class="text-center space-y-2">
         <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200">Comparison</span>
@@ -605,7 +605,7 @@
       </div>
     </section>
 
-    <!-- ================= 8. DYNAMIC CODE VAULT ================= -->
+    <!-- ================= 8. DYNAMIC INTEGRATION CODE VAULT ================= -->
     <section id="integration" class="max-w-6xl mx-auto px-4 py-14 space-y-6">
       <header class="text-center space-y-2">
         <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Integration</span>
@@ -632,7 +632,7 @@
           <div class="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
               <h3 class="text-base font-bold text-slate-900">📋 Apps Script Client Code</h3>
-              <p id="activeKeyIndicator" class="text-[11px] text-slate-500 font-mono">Key: <span class="text-amber-600 font-bold">Waiting for Key Generation or Payment</span></p>
+              <p id="activeKeyIndicator" class="text-[11px] text-slate-500 font-mono">Key: <span class="text-amber-600 font-bold">Waiting for Key Generation</span></p>
             </div>
             <button onclick="copyAppsScript()" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 shadow-sm flex items-center gap-1">
               <span>Copy Code</span> 📋
@@ -640,7 +640,7 @@
           </div>
 
           <pre id="codeSnippetBox" class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 h-56 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
-const SHEETPULSE_API_KEY = "YOUR_API_KEY_HERE"; // Complete checkout or generate key above to auto-fill
+const SHEETPULSE_API_KEY = "YOUR_API_KEY_HERE";
 
 function SHEETPULSE(text, instruction) { return callSheetPulse(text, instruction, "custom"); }
 function AI_CLEAN(text) { return callSheetPulse(text, "clean", "clean"); }
@@ -676,7 +676,7 @@ function callSheetPulse(text, inst, action) {
   </main>
 
   <!-- ================= MODALS ================= -->
-  <!-- Template Details / Inspector Modal -->
+  <!-- Template Inspector & Download Modal -->
   <div id="templateDetailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeTemplateDetailsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
@@ -687,7 +687,6 @@ function callSheetPulse(text, inst, action) {
         <p id="tmplDetailDesc" class="text-xs text-slate-600">Sample preview table showing input, formula and sub-second output.</p>
       </div>
 
-      <!-- Preview Table Mockup -->
       <div class="overflow-x-auto rounded-xl border border-slate-200">
         <table class="w-full text-xs font-mono text-left">
           <thead class="bg-slate-100 text-slate-700 border-b border-slate-200">
@@ -701,7 +700,6 @@ function callSheetPulse(text, inst, action) {
         </table>
       </div>
 
-      <!-- Actions -->
       <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
         <a href="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/copy" target="_blank" class="w-full py-3 rounded-xl font-extrabold text-xs text-white text-center bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-md">
           🚀 Open & Make Copy in Google Sheets
@@ -713,7 +711,7 @@ function callSheetPulse(text, inst, action) {
     </div>
   </div>
 
-  <!-- Dashboard Telemetry Modal -->
+  <!-- Real-Time Account Dashboard Modal -->
   <div id="dashboardModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <button onclick="closeDashboardModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
@@ -725,10 +723,15 @@ function callSheetPulse(text, inst, action) {
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row items-center gap-2">
-        <input id="dashSearchKey" type="text" placeholder="Enter your sp_... API key" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500">
-        <button onclick="fetchDashboardStats()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-1">
-          <span>Fetch Stats</span>
+      <div class="space-y-2">
+        <div class="flex flex-col sm:flex-row items-center gap-2">
+          <input id="dashSearchKey" type="text" placeholder="Enter your sp_... or gsk_... API key" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500">
+          <button onclick="fetchDashboardStats()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-1">
+            <span>Fetch Stats</span>
+          </button>
+        </div>
+        <button id="instantTestBtn" onclick="runDirectDashboardTest()" class="w-full py-2 rounded-xl text-xs font-extrabold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition-all flex items-center justify-center gap-1.5">
+          <span>⚡</span> <span>Run 1-Click Test & Auto-Refresh Log</span>
         </button>
       </div>
 
@@ -736,19 +739,19 @@ function callSheetPulse(text, inst, action) {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
             <p class="text-[11px] text-slate-500 font-semibold">Account Tier</p>
-            <p id="dashTier" class="text-base font-extrabold text-slate-900">FREE</p>
+            <p id="dashTier" class="text-sm sm:text-base font-extrabold text-slate-900">FREE</p>
           </div>
           <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-1">
             <p class="text-[11px] text-emerald-800 font-semibold">Credits Left</p>
-            <p id="dashCreditsLeft" class="text-base font-black text-emerald-700">100</p>
+            <p id="dashCreditsLeft" class="text-sm sm:text-base font-black text-emerald-700">100</p>
           </div>
           <div class="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-center space-y-1">
             <p class="text-[11px] text-indigo-800 font-semibold">Total Cells Run</p>
-            <p id="dashTotalUsed" class="text-base font-black text-indigo-700">0</p>
+            <p id="dashTotalUsed" class="text-sm sm:text-base font-black text-indigo-700">0</p>
           </div>
           <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-1">
             <p class="text-[11px] text-amber-800 font-semibold">Avg Latency</p>
-            <p id="dashAvgLatency" class="text-base font-black text-amber-700">0.24s</p>
+            <p id="dashAvgLatency" class="text-sm sm:text-base font-black text-amber-700">0.22s</p>
           </div>
         </div>
 
@@ -763,7 +766,7 @@ function callSheetPulse(text, inst, action) {
         </div>
 
         <div class="space-y-2">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">Recent Execution Logs</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">Recent Execution Audit Logs</p>
           <div class="overflow-x-auto rounded-xl border border-slate-200">
             <table class="w-full text-xs font-mono text-left">
               <thead class="bg-slate-100 text-slate-700 border-b border-slate-200">
@@ -818,16 +821,16 @@ function callSheetPulse(text, inst, action) {
     &copy; 2026 SheetPulse AI Engine &bull; Autonomous Spreadsheet Infrastructure
   </footer>
 
-  <!-- ================= SCRIPT LOGIC ================= -->
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
   <script>
-    let userSecretKey = "YOUR_API_KEY_HERE";
+    let userSecretKey = localStorage.getItem('sheetpulse_key') || "YOUR_API_KEY_HERE";
     let selectedTier = "pro";
 
     function toggleMobileNav() {
       document.getElementById('mobileNavMenu').classList.toggle('hidden');
     }
 
-    // --- TEMPLATE DATA & CSV DOWNLOAD REGISTRY ---
+    // --- TEMPLATE DATA & CSV REGISTRY ---
     const TEMPLATE_STORE = {
       lead_enrichment: {
         title: "B2B Lead & Email Extractor Template",
@@ -974,13 +977,17 @@ function callSheetPulse(text, inst, action) {
         return;
       }
 
+      userSecretKey = key;
+      localStorage.setItem('sheetpulse_key', key);
+      updateCodeBoxWithKey(key);
+
       try {
         const res = await fetch(`/api/v1/dashboard/stats?api_key=${key}`);
         const data = await res.json();
         if (data.success) {
           document.getElementById('dashTier').innerText = data.tier;
-          document.getElementById('dashCreditsLeft').innerText = data.credits_left.toLocaleString();
-          document.getElementById('dashTotalUsed').innerText = data.total_used.toLocaleString();
+          document.getElementById('dashCreditsLeft').innerText = String(data.credits_left);
+          document.getElementById('dashTotalUsed').innerText = String(data.total_used);
           document.getElementById('dashAvgLatency').innerText = data.avg_latency;
           document.getElementById('dashQuotaPercent').innerText = `${data.used_percentage}% consumed`;
           document.getElementById('dashProgressBar').style.width = `${data.used_percentage}%`;
@@ -1006,7 +1013,37 @@ function callSheetPulse(text, inst, action) {
       }
     }
 
-    // --- ANIMATED DRAG DOWN ENGINE ---
+    async function runDirectDashboardTest() {
+      const key = document.getElementById('dashSearchKey').value.trim();
+      if (!key) {
+        alert("Please paste your API key in the box first.");
+        return;
+      }
+      const btn = document.getElementById('instantTestBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳ Executing Test Formula...</span>';
+
+      try {
+        await fetch('/api/v1/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: "Contact Alex (Founder): alex.h@finscale.io | Book call",
+            instruction: "CEO email address",
+            action: "extract",
+            api_key: key
+          })
+        });
+        await fetchDashboardStats();
+      } catch (e) {
+        alert("Execution failed: " + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡</span> <span>Run 1-Click Test & Auto-Refresh Log</span>';
+      }
+    }
+
+    // --- ANIMATED DRAG-DOWN ENGINE ---
     const animatedRowData = [
       { id: 3, result: "ceo-office@retailpro.com", time: "0.18s" },
       { id: 4, result: "s.jenkins@hypercloud.dev", time: "0.22s" },
@@ -1051,7 +1088,12 @@ function callSheetPulse(text, inst, action) {
       }, 700);
     }
 
-    window.addEventListener('load', () => setTimeout(runDragDownAnimation, 600));
+    window.addEventListener('load', () => {
+      setTimeout(runDragDownAnimation, 600);
+      if (userSecretKey && userSecretKey !== "YOUR_API_KEY_HERE") {
+        updateCodeBoxWithKey(userSecretKey);
+      }
+    });
 
     // --- ROI CALCULATOR ---
     function calculateROI() {
@@ -1113,7 +1155,7 @@ function callSheetPulse(text, inst, action) {
         const res = await fetch('/api/v1/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: 'sp_demo_live' })
+          body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: userSecretKey !== "YOUR_API_KEY_HERE" ? userSecretKey : "sp_demo_live" })
         });
         const data = await res.json();
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
@@ -1190,6 +1232,7 @@ function callSheetPulse(text, inst, action) {
         const data = await res.json();
         box.innerHTML = '✅ <strong>Your Free Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected below!</div>';
         updateCodeBoxWithKey(data.api_key);
+        localStorage.setItem('sheetpulse_key', data.api_key);
       } catch (e) {
         box.innerHTML = 'Error generating key.';
       }
@@ -1259,6 +1302,7 @@ function callSheetPulse(text, inst, action) {
             if (verifyData.success) {
               box.innerHTML = '🎉 <strong>Payment Successful!</strong><br>Your Key:<br><code class="text-emerald-700 font-bold bg-white border border-emerald-300 p-1.5 rounded block my-1">' + verifyData.api_key + '</code>';
               updateCodeBoxWithKey(verifyData.api_key);
+              localStorage.setItem('sheetpulse_key', verifyData.api_key);
             }
           },
           modal: {
@@ -1283,7 +1327,7 @@ function callSheetPulse(text, inst, action) {
       const code = document.getElementById('codeSnippetBox').textContent;
       navigator.clipboard.writeText(code);
       if (userSecretKey === "YOUR_API_KEY_HERE") {
-        alert("Copied! Generate a key or complete payment to activate.");
+        alert("Copied! Generate a key or enter your BYOK key to activate.");
       } else {
         alert("Copied code with your active API key injected!");
       }

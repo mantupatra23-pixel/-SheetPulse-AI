@@ -18,7 +18,7 @@ from groq import Groq
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="15.0.0",
+    version="16.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -40,7 +40,6 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key")
 DB_PATH = os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db")
 
-# --- SQLite Database Layer ---
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=25.0)
     conn.row_factory = sqlite3.Row
@@ -95,12 +94,10 @@ def init_db():
 
 init_db()
 
-# --- BYOK Key Detector ---
 def is_byok_key(key: str) -> bool:
     k = key.strip()
     return k.startswith("gsk_") or k.startswith("csk-") or k.startswith("sk-") or k.startswith("AIza")
 
-# --- Quota & Auth Verification ---
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     sanitized_key = (api_key or "").strip()
     if not sanitized_key or sanitized_key == "YOUR_API_KEY_HERE":
@@ -112,18 +109,17 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT owner_name, tier, credits_left FROM api_keys WHERE key = ?", (sanitized_key,))
+        cur.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
 
-        # Auto-Register BYOK Keys on the fly
         if not row and is_byok_key(sanitized_key):
-            byok_provider = "Groq" if sanitized_key.startswith("gsk_") else ("Cerebras" if sanitized_key.startswith("csk-") else "BYOK")
+            byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else "BYOK Provider"
             cur.execute(
-                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
-                (sanitized_key, f"{byok_provider} Key User", time.time())
+                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
+                (sanitized_key, byok_provider, amount, time.time())
             )
             conn.commit()
-            return {"owner": f"{byok_provider} User", "tier": "BYOK", "remaining": 999999}
+            return {"owner": byok_provider, "tier": "BYOK", "remaining": 999999}
 
         if not row:
             raise HTTPException(status_code=401, detail="Invalid API Key. Key not recognized by cluster.")
@@ -132,12 +128,11 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
         if tier not in ["developer", "byok"] and credits_left < amount:
             raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
 
-        if tier != "byok":
-            cur.execute(
-                "UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?",
-                (amount, amount, sanitized_key)
-            )
-            conn.commit()
+        if tier == "byok":
+            cur.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
+        else:
+            cur.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
+        conn.commit()
 
         return {"owner": row["owner_name"], "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
     finally:
@@ -226,7 +221,6 @@ def clean_output(text: str) -> str:
         text = lines[0]
     return text.strip('*_ `').strip()
 
-# --- Pydantic Models ---
 class KeyGenRequest(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
     tier: Optional[str] = Field("free", pattern="^(free|pro|developer)$")
@@ -253,7 +247,6 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# --- Provider Cascade Callers ---
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
     if not CEREBRAS_API_KEY:
         raise ValueError("Cerebras unconfigured")
@@ -359,7 +352,6 @@ def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[st
         usr = f"Instruction: {instruction}\nContext: {text}"
     return sys, usr
 
-# --- Static Frontend Serving ---
 @app.get("/")
 def serve_home():
     if os.path.exists("index.html"):
@@ -372,7 +364,6 @@ def serve_docs():
         return FileResponse("docs.html")
     return HTMLResponse("<h1>SheetPulse AI Documentation</h1>")
 
-# --- System Health ---
 @app.get("/api/v1/health")
 def health_metrics():
     conn = get_db()
@@ -385,14 +376,14 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "15.0.0",
+        "version": "16.0.0",
         "active_keys": u_count or 0,
         "total_cells_processed": total_exec or 0,
         "logged_events": log_count or 0,
         "cache_entries": len(MEMORY_CACHE)
     }
 
-# --- REAL-TIME ACCOUNT DASHBOARD (Supports both sp_... and gsk_... BYOK) ---
+# --- COMPLETE TELEMETRY DASHBOARD ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
@@ -404,9 +395,8 @@ def get_user_dashboard(api_key: str):
     cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
     key_row = cur.fetchone()
 
-    # Auto-register BYOK key if accessed via dashboard
     if not key_row and is_byok_key(sanitized_key):
-        byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Cerebras BYOK" if sanitized_key.startswith("csk-") else "BYOK Provider")
+        byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else "BYOK Provider"
         cur.execute(
             "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
             (sanitized_key, byok_provider, time.time())
@@ -425,27 +415,30 @@ def get_user_dashboard(api_key: str):
     )
     recent_logs = [dict(r) for r in cur.fetchall()]
 
-    cur.execute("SELECT AVG(latency) FROM usage_logs WHERE key = ?", (sanitized_key,))
-    avg_lat = cur.fetchone()[0] or 0.22
+    cur.execute("SELECT COUNT(*), AVG(latency) FROM usage_logs WHERE key = ?", (sanitized_key,))
+    log_count, avg_lat = cur.fetchone()
+    avg_lat = avg_lat or 0.22
+
+    # Accurate Total Cells Count from usage logs or db
+    actual_total_used = max(key_row["total_used"], log_count or 0)
 
     conn.close()
 
     is_unlimited = key_row["tier"] == "byok"
-    used_percentage = 0 if is_unlimited else min(100, round((key_row["total_used"] / max(1, key_row["total_used"] + key_row["credits_left"])) * 100))
+    used_percentage = 0 if is_unlimited else min(100, round((actual_total_used / max(1, actual_total_used + key_row["credits_left"])) * 100))
 
     return {
         "success": True,
         "owner": key_row["owner_name"],
         "tier": "UNLIMITED BYOK" if is_unlimited else key_row["tier"].upper(),
         "credits_left": "Unlimited (BYOK)" if is_unlimited else key_row["credits_left"],
-        "total_used": key_row["total_used"],
+        "total_used": actual_total_used,
         "used_percentage": used_percentage,
         "avg_latency": f"{avg_lat:.2f}s",
         "created_at": time.strftime("%d %b %Y", time.localtime(key_row["created_at"])),
         "recent_logs": recent_logs
     }
 
-# --- Tenant Key Management Endpoints ---
 @app.post("/api/v1/keys/new")
 def create_free_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -466,7 +459,7 @@ def create_free_api_key(req: KeyGenRequest):
         "tier": req.tier
     }
 
-# --- Core Process Route ---
+# --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -474,6 +467,10 @@ async def process_cell(req: ProcessRequest):
     if not text_content:
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
+    # 1. Quota & Auth Check FIRST (Ensures counter increments for EVERY request)
+    verify_and_deduct_credits(req.api_key or "", amount=1)
+
+    # 2. Regex Fast Extractor
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -481,6 +478,7 @@ async def process_cell(req: ProcessRequest):
             log_request_event(req.api_key or "anonymous", "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
+    # 3. In-Memory Cache
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)
@@ -492,18 +490,16 @@ async def process_cell(req: ProcessRequest):
             "cached": True
         }
 
-    verify_and_deduct_credits(req.api_key or "", amount=1)
     sys_prompt, usr_prompt = resolve_action_prompts(req.action, req.instruction or "", text_content)
 
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # If user passed custom Groq key
         if req.api_key and req.api_key.startswith("gsk_"):
             try:
                 result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
             except Exception as ge:
-                raise HTTPException(status_code=400, detail=f"Your Groq API Key failed: {str(ge)}")
+                raise HTTPException(status_code=400, detail=f"Groq API Error: {str(ge)}")
         else:
             try:
                 result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)

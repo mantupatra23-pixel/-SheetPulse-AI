@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from groq import Groq
 
-# Optional PostgreSQL Driver (for Supabase connection)
+# Optional PostgreSQL Driver (Supabase Pooler)
 try:
     import psycopg2
     from psycopg2 import pool
@@ -26,7 +26,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="20.0.0",
+    version="22.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -58,7 +58,7 @@ if IS_POSTGRES:
     try:
         pg_pool = psycopg2.pool.SimpleConnectionPool(1, 20, cleaned_url, sslmode="require")
     except Exception as e:
-        print(f"Warning: Supabase connection failed ({e}), using SQLite fallback.")
+        print(f"Warning: Supabase connection failed ({e}), falling back to SQLite.")
         IS_POSTGRES = False
 
 class DBConn:
@@ -188,51 +188,55 @@ def is_byok_key(key: str) -> bool:
     k = (key or "").strip()
     return k.startswith("gsk_") or k.startswith("csk-") or k.startswith("sk-") or k.startswith("AIza")
 
+# --- RESILIENT QUOTA & AUTH WITH AUTO-REGISTRATION ---
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     sanitized_key = (api_key or "").strip()
 
-    # 1. Instant Sandbox Bypass (Never blocks playground users)
-    if sanitized_key in ["sp_demo_live", "demo", "sandbox", "", "YOUR_API_KEY_HERE"]:
+    # 1. Instant Sandbox Demo Bypass
+    if not sanitized_key or sanitized_key in ["sp_demo_live", "demo", "sandbox", "YOUR_API_KEY_HERE"]:
         return {"owner": "Web Sandbox Demo", "tier": "free", "remaining": 9999}
 
-    # 2. BYOK Key Auto-Registration
-    if is_byok_key(sanitized_key):
-        try:
-            with DBConn() as db:
-                cur = db.execute("SELECT owner_name FROM api_keys WHERE key = ?", (sanitized_key,))
-                if not cur.fetchone():
-                    provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
-                    db.execute(
-                        "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
-                        (sanitized_key, provider_tag, amount, time.time())
-                    )
-                else:
-                    db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
-        except Exception:
-            pass
-        return {"owner": "BYOK User", "tier": "BYOK", "remaining": 999999}
-
-    # 3. Standard DB Lookup for registered keys
     with DBConn() as db:
         cur = db.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
 
+        # Auto-Register BYOK Key if not in DB
+        if not row and is_byok_key(sanitized_key):
+            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
+            db.execute(
+                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
+                (sanitized_key, provider_tag, amount, time.time())
+            )
+            return {"owner": provider_tag, "tier": "BYOK", "remaining": 999999}
+
+        # Auto-Register any Client 'sp_' Key into DB if missing
+        if not row and sanitized_key.startswith("sp_"):
+            db.execute(
+                "INSERT INTO api_keys VALUES (?, ?, 'free', 100, ?, ?)",
+                (sanitized_key, "Workspace User", amount, time.time())
+            )
+            return {"owner": "Workspace User", "tier": "free", "remaining": 100 - amount}
+
         if not row:
-            raise HTTPException(status_code=401, detail="Invalid API Key. Key not recognized by cluster.")
+            raise HTTPException(status_code=401, detail="Invalid API Key. Please generate a valid key.")
 
         owner_name, tier, credits_left, total_used = row[0], row[1], row[2], row[3]
         if tier not in ["developer", "byok"] and credits_left < amount:
             raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
 
-        db.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
-        return {"owner": owner_name, "tier": tier, "remaining": credits_left - amount}
+        if tier == "byok":
+            db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
+        else:
+            db.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
+
+        return {"owner": owner_name, "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
 
 def log_request_event(api_key: str, action: str, provider: str, latency: float, input_len: int):
     try:
         with DBConn() as db:
             db.execute(
                 "INSERT INTO usage_logs (key, action, provider, latency, input_length, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-                (api_key or "anonymous", action, provider, latency, input_len, time.time())
+                (api_key or "sp_demo_live", action, provider, latency, input_len, time.time())
             )
     except Exception:
         pass
@@ -307,6 +311,7 @@ def clean_output(text: str) -> str:
         text = lines[0]
     return text.strip('*_ `').strip()
 
+# --- Pydantic Data Models ---
 class KeyGenRequest(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
     tier: Optional[str] = Field("free", pattern="^(free|pro|developer)$")
@@ -333,6 +338,7 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
+# --- Primary Engine (Groq) & Fallback Engine (Gemini) ---
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not effective_key:
@@ -423,17 +429,14 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "20.0.0",
+        "version": "22.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
-        "logged_events": log_count,
-        "cluster_providers": {
-            "groq": bool(GROQ_API_KEY),
-            "gemini": bool(GEMINI_API_KEY)
-        }
+        "logged_events": log_count
     }
 
+# --- REAL-TIME TELEMETRY DASHBOARD ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
@@ -444,17 +447,17 @@ def get_user_dashboard(api_key: str):
         cur = db.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
         key_row = cur.fetchone()
 
-        if not key_row and is_byok_key(sanitized_key):
-            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else "Gemini BYOK"
-            db.execute(
-                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
-                (sanitized_key, provider_tag, time.time())
-            )
+        if not key_row:
+            if is_byok_key(sanitized_key):
+                provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else "Gemini BYOK"
+                db.execute("INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)", (sanitized_key, provider_tag, time.time()))
+            elif sanitized_key.startswith("sp_"):
+                db.execute("INSERT INTO api_keys VALUES (?, ?, 'free', 100, 0, ?)", (sanitized_key, "Workspace User", time.time()))
+            else:
+                raise HTTPException(status_code=404, detail="API Key not found.")
+            
             cur = db.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
             key_row = cur.fetchone()
-
-        if not key_row:
-            raise HTTPException(status_code=404, detail="API Key not found in cluster.")
 
         owner_name, tier, credits_left, total_used, created_at = key_row[0], key_row[1], key_row[2], key_row[3], key_row[4]
 
@@ -553,6 +556,7 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
+# --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -560,11 +564,13 @@ async def process_cell(req: ProcessRequest):
     if not text_content:
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    # 1. Quota & Auth Check
-    effective_key = req.api_key or "sp_demo_live"
+    effective_key = (req.api_key or "").strip()
+    if not effective_key or effective_key == "YOUR_API_KEY_HERE":
+        effective_key = "sp_demo_live"
+
     verify_and_deduct_credits(effective_key, amount=1)
 
-    # 2. Regex Fast Extractor Bypass
+    # 1. Regex UltraFast Extractor Bypass
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -572,7 +578,7 @@ async def process_cell(req: ProcessRequest):
             log_request_event(effective_key, "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 3. Cache Lookup
+    # 2. In-Memory Cache Lookup
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)

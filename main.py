@@ -24,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="27.0.0",
+    version="28.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -332,25 +332,29 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= 3 VERIFIED ACTIVE REST ENGINES =================
+# ================= 3 ULTRA-COMPLIANT REST ENGINES =================
 
-# 1. Cerebras (Active models: llama3.1-8b, llama-3.3-70b)
+# 1. Cerebras (Active models: llama3.1-8b, llama-3.3-70b, llama-3.1-70b)
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
-        raise ValueError("Cerebras API key not set")
+        raise ValueError("Cerebras API key not set in environment")
     
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
-    last_err = ""
-    for model in ["llama3.1-8b", "llama-3.3-70b"]:
+    
+    # Correct Cerebras model identifiers
+    for model in ["llama3.1-8b", "llama-3.3-70b", "llama-3.1-70b"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -360,29 +364,31 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"Cerebras:{model}"
-            else:
-                last_err = f"HTTP {resp.status_code}: {resp.text}"
-        except Exception as e:
-            last_err = str(e)
-    raise ValueError(f"Cerebras failed -> {last_err}")
+        except Exception:
+            continue
+    raise ValueError("Cerebras models failed")
 
-# 2. Groq (Active models: llama-3.3-70b-versatile, llama-3.1-8b-instant, llama-3.2-3b-preview)
+# 2. Groq (Active production models: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768)
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not key:
-        raise ValueError("Groq API key not set")
+        raise ValueError("Groq API key not set in environment")
     
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
-    last_err = ""
-    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.2-3b-preview"]:
+    
+    # Pure active Groq models (all deprecated models removed)
+    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -392,17 +398,15 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"Groq:{model}"
-            else:
-                last_err = f"HTTP {resp.status_code}: {resp.text}"
-        except Exception as e:
-            last_err = str(e)
-    raise ValueError(f"Groq failed -> {last_err}")
+        except Exception:
+            continue
+    raise ValueError("Groq models failed")
 
 # 3. OpenRouter (Active models: llama-3.3-70b, gemini-2.0-flash, qwen-2.5-72b)
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
-        raise ValueError("OpenRouter API key not set")
+        raise ValueError("OpenRouter API key not set in environment")
     
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -411,12 +415,14 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
         "HTTP-Referer": "https://sheetpulseai.onrender.com",
         "X-Title": "SheetPulse AI"
     }
-    last_err = ""
     for model in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "qwen/qwen-2.5-72b-instruct"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -426,11 +432,9 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                 out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"OpenRouter:{model.split('/')[-1]}"
-            else:
-                last_err = f"HTTP {resp.status_code}: {resp.text}"
-        except Exception as e:
-            last_err = str(e)
-    raise ValueError(f"OpenRouter failed -> {last_err}")
+        except Exception:
+            continue
+    raise ValueError("OpenRouter models failed")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -484,7 +488,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "27.0.0",
+        "version": "28.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -496,26 +500,52 @@ def health_metrics():
         }
     }
 
-# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT ---
+# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT (Detailed Model Report) ---
 @app.get("/api/v1/debug/providers")
 def debug_individual_providers():
     test_sys = "Output ONLY the word 'OK'."
     test_usr = "Status check."
     results = {}
 
-    # Test Cerebras
+    # Test Cerebras Models Individually
+    cer_details = {}
+    if CEREBRAS_API_KEY:
+        for m in ["llama3.1-8b", "llama-3.3-70b", "llama-3.1-70b"]:
+            try:
+                r = requests.post(
+                    "https://api.cerebras.ai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {CEREBRAS_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": m, "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10},
+                    timeout=6
+                )
+                cer_details[m] = {"status_code": r.status_code, "ok": r.status_code == 200}
+            except Exception as e:
+                cer_details[m] = {"error": str(e)}
     try:
         out, prov = _sync_cerebras_call(test_sys, test_usr)
-        results["cerebras"] = {"status": "success", "provider": prov, "output": out}
+        results["cerebras"] = {"status": "success", "provider": prov, "output": out, "models_tested": cer_details}
     except Exception as e:
-        results["cerebras"] = {"status": "failed", "error": str(e)}
+        results["cerebras"] = {"status": "failed", "error": str(e), "models_tested": cer_details}
 
-    # Test Groq
+    # Test Groq Models Individually
+    groq_details = {}
+    if GROQ_API_KEY:
+        for m in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192"]:
+            try:
+                r = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={"model": m, "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 10},
+                    timeout=6
+                )
+                groq_details[m] = {"status_code": r.status_code, "ok": r.status_code == 200}
+            except Exception as e:
+                groq_details[m] = {"error": str(e)}
     try:
         out, prov = _sync_groq_call(test_sys, test_usr)
-        results["groq"] = {"status": "success", "provider": prov, "output": out}
+        results["groq"] = {"status": "success", "provider": prov, "output": out, "models_tested": groq_details}
     except Exception as e:
-        results["groq"] = {"status": "failed", "error": str(e)}
+        results["groq"] = {"status": "failed", "error": str(e), "models_tested": groq_details}
 
     # Test OpenRouter
     try:
@@ -718,7 +748,7 @@ async def process_cell(req: ProcessRequest):
                     continue
 
         if not result:
-            raise HTTPException(status_code=503, detail="All 3 cluster inference engines busy. Please retry.")
+            raise HTTPException(status_code=503, detail="All cluster inference engines busy. Please retry.")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SheetPulse AI Docs &bull; Complete Function & Formula Guide</title>
+  <title>SheetPulse AI Docs &bull; Complete Formula & Setup Guide</title>
   <meta name="description" content="Comprehensive documentation and formula reference for SheetPulse AI in Google Sheets.">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -24,6 +24,7 @@
               400: '#34d399',
               500: '#10b981',
               600: '#059669',
+              700: '#047857',
               950: '#022c22',
             }
           }
@@ -33,264 +34,269 @@
   </script>
 
   <style>
-    body { background-color: #0b0f19; }
-    .neon-glow { box-shadow: 0 10px 35px -10px rgba(16, 185, 129, 0.2); }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    body { background-color: #f1f5f9; }
+    .soft-grid-bg {
+      background-size: 32px 32px;
+      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+    }
+    .card-shadow {
+      box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+    }
   </style>
 </head>
-<body class="text-slate-100 antialiased selection:bg-brand-500 selection:text-black">
+<body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col">
 
-  <!-- Top Navigation -->
-  <header class="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#0b0f19]/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-lg">
+  <!-- Top Navbar -->
+  <header class="sticky top-0 z-50 w-full border-b border-slate-200/90 bg-white/90 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
-      <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-300 hover:text-white p-1 rounded-lg bg-slate-900 border border-slate-800">
+      <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-700 hover:text-slate-900 p-2 rounded-xl bg-slate-100 border border-slate-300">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-slate-800 to-black border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-extrabold shadow-md">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-extrabold shadow-sm">
         ⚡
       </div>
-      <a href="/" class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1">
-        SheetPulse<span class="text-emerald-400">Docs</span>
+      <a href="/" class="text-lg font-extrabold tracking-tight text-slate-900 flex items-center gap-1">
+        SheetPulse<span class="text-emerald-600">Docs</span>
       </a>
     </div>
 
     <div class="flex items-center gap-3">
-      <a href="/" class="text-xs font-bold text-slate-300 hover:text-white transition-colors">
+      <a href="/" class="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
         ← Back to App
       </a>
-      <a href="/#integration" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 transition-all">
+      <a href="/#integration" class="px-4 py-1.5 rounded-lg text-xs font-extrabold text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-sm transition-all">
         Install Free
       </a>
     </div>
   </header>
 
-  <div class="max-w-7xl mx-auto flex">
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm hidden md:hidden"></div>
+
+  <div class="max-w-7xl mx-auto flex w-full flex-1">
     
     <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="fixed md:sticky top-[57px] left-0 z-40 w-72 h-[calc(100vh-57px)] bg-[#0d1322] border-r border-slate-800 overflow-y-auto p-5 space-y-6 transition-transform -translate-x-full md:translate-x-0">
+    <aside id="sidebar" class="fixed md:sticky top-0 md:top-[57px] left-0 z-50 md:z-30 w-72 h-full md:h-[calc(100vh-57px)] bg-white border-r border-slate-200 overflow-y-auto p-5 space-y-6 transition-transform -translate-x-full md:translate-x-0 shadow-xl md:shadow-none">
       
+      <div class="flex items-center justify-between md:hidden border-b border-slate-100 pb-3">
+        <span class="font-extrabold text-sm text-slate-900">Navigation Menu</span>
+        <button onclick="toggleMobileSidebar()" class="text-slate-400 hover:text-slate-800 text-lg font-bold">✕</button>
+      </div>
+
       <!-- Search Input -->
       <div class="relative">
-        <input type="text" id="docSearch" onkeyup="filterDocs()" placeholder="Search formulas & docs..." class="w-full bg-[#070b12] border border-slate-700 text-xs rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono">
+        <input type="text" id="docSearch" onkeyup="filterDocs()" placeholder="Search formulas & topics..." class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3.5 py-2.5 text-slate-900 focus:outline-none focus:border-emerald-500 font-mono">
       </div>
 
-      <!-- Section: Getting Started -->
+      <!-- Getting Started -->
       <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">Getting Started</p>
-        <ul class="space-y-1 text-xs font-semibold text-slate-300">
-          <li><a href="#quickstart" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">🚀 Quickstart Guide</a></li>
-          <li><a href="#installation" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">📦 2-Minute Installation</a></li>
-          <li><a href="#authentication" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">🔑 API Key & Authentication</a></li>
+        <p class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 font-mono">Getting Started</p>
+        <ul class="space-y-1 text-xs font-bold text-slate-600">
+          <li><a href="#quickstart" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors">🚀 Overview</a></li>
+          <li><a href="#installation" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors">📦 2-Minute Installation</a></li>
+          <li><a href="#authentication" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors">🔑 API Key Setup</a></li>
         </ul>
       </div>
 
-      <!-- Section: AI Functions Reference -->
+      <!-- Core AI Functions -->
       <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 font-mono">Core AI Functions</p>
-        <ul class="space-y-1 text-xs font-mono text-slate-300">
-          <li><a href="#fn-sheetpulse" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=SHEETPULSE()</a></li>
-          <li><a href="#fn-clean" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=AI_CLEAN()</a></li>
-          <li><a href="#fn-extract" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=AI_EXTRACT()</a></li>
-          <li><a href="#fn-classify" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=AI_CLASSIFY()</a></li>
-          <li><a href="#fn-fix" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=AI_FIX()</a></li>
-          <li><a href="#fn-scrape" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors">=AI_SCRAPE()</a></li>
+        <p class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 font-mono">Core AI Functions</p>
+        <ul class="space-y-1 text-xs font-mono font-bold text-slate-700">
+          <li><a href="#fn-sheetpulse" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=SHEETPULSE()</a></li>
+          <li><a href="#fn-clean" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=AI_CLEAN()</a></li>
+          <li><a href="#fn-extract" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=AI_EXTRACT()</a></li>
+          <li><a href="#fn-classify" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=AI_CLASSIFY()</a></li>
+          <li><a href="#fn-fix" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=AI_FIX()</a></li>
+          <li><a href="#fn-scrape" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors">=AI_SCRAPE()</a></li>
         </ul>
       </div>
 
-      <!-- Section: Advanced Workflows -->
+      <!-- Troubleshooting -->
       <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-400 font-mono">Advanced Workflows</p>
-        <ul class="space-y-1 text-xs font-semibold text-slate-300">
-          <li><a href="#batch-fill" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">⚡ Bulk Fill-Down Operations</a></li>
-          <li><a href="#caching" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">🧠 RAM Caching & Recalculation</a></li>
-          <li><a href="#byok-guide" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">🛡️ Bring Your Own Key (BYOK)</a></li>
-        </ul>
-      </div>
-
-      <!-- Section: Troubleshooting -->
-      <div class="space-y-2">
-        <p class="text-[11px] font-extrabold uppercase tracking-wider text-rose-400 font-mono">Troubleshooting</p>
-        <ul class="space-y-1 text-xs font-semibold text-slate-300">
-          <li><a href="#common-errors" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">⚠️ Common Formula Errors</a></li>
-          <li><a href="#rate-limits" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">⏱️ Rate Limits & Quotas</a></li>
-          <li><a href="#faq" class="block px-3 py-1.5 rounded-lg hover:bg-slate-800/60 hover:text-white transition-colors">❓ FAQ & Help Center</a></li>
+        <p class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 font-mono">Guides & Support</p>
+        <ul class="space-y-1 text-xs font-bold text-slate-600">
+          <li><a href="#common-errors" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors">⚠️ Error Resolutions</a></li>
+          <li><a href="#recalculation" onclick="closeOnMobile()" class="block px-3 py-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-900 transition-colors">⚡ Prevent Recalculation</a></li>
         </ul>
       </div>
 
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 p-6 md:p-12 space-y-16 max-w-4xl">
+    <main class="flex-1 p-5 md:p-12 space-y-14 max-w-4xl">
       
-      <!-- QUICKSTART -->
+      <!-- Overview -->
       <section id="quickstart" class="space-y-4">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">Documentation / Overview</span>
-        <h1 class="text-3xl sm:text-4xl font-black text-white">SheetPulse AI Documentation</h1>
-        <p class="text-slate-300 text-sm leading-relaxed">
-          SheetPulse AI integrates autonomous neural models directly into Google Sheets custom formulas. You can extract entities, clean unstructured columns, classify support tickets, and scrape live URLs without writing complex scripts or switching browser tabs.
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          Documentation &bull; v10.5
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">SheetPulse AI Documentation</h1>
+        <p class="text-slate-600 text-sm leading-relaxed font-medium">
+          SheetPulse AI brings autonomous neural models directly inside Google Sheets cell formulas. Extract data points, clean unstructured strings, categorize feedback, and scrape websites without writing custom scripts.
         </p>
 
-        <div class="p-4 rounded-2xl bg-[#131b2e] border border-slate-700 space-y-2">
-          <p class="text-xs font-bold text-emerald-400">⚡ Core Architecture Highlights</p>
-          <ul class="text-xs text-slate-300 space-y-1">
-            <li>&bull; <strong class="text-white">Sub-Second Execution:</strong> Multi-engine cloud cluster ensures response times under 0.8s per cell.</li>
-            <li>&bull; <strong class="text-white">In-Memory Cache:</strong> Identical requests evaluate in 0.001s without consuming API credits.</li>
-            <li>&bull; <strong class="text-white">Enterprise Fallback:</strong> Zero-downtime automated cascade across multiple AI backends.</li>
+        <div class="p-5 rounded-2xl bg-white border border-slate-200 card-shadow space-y-2">
+          <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider font-mono">⚡ Performance Architecture</p>
+          <ul class="text-xs text-slate-600 space-y-1.5 font-medium">
+            <li>&bull; <strong class="text-slate-900">Sub-Second Execution:</strong> Multi-engine cloud routing ensures cells evaluate in &lt;0.8s.</li>
+            <li>&bull; <strong class="text-slate-900">In-Memory RAM Caching:</strong> Duplicate calls hit high-speed RAM in 0.001s without burning API tokens.</li>
+            <li>&bull; <strong class="text-slate-900">Zero-Downtime Fallback:</strong> Automatic cascade failover across high-throughput inference backends.</li>
           </ul>
         </div>
       </section>
 
-      <!-- INSTALLATION -->
-      <section id="installation" class="space-y-4 pt-6 border-t border-slate-800">
-        <h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
-          <span>📦</span> 2-Minute Google Sheets Installation
-        </h2>
-        <p class="text-slate-300 text-sm">Follow these 3 steps to activate SheetPulse AI inside any Google Spreadsheet:</p>
-
-        <ol class="space-y-3 text-xs text-slate-300">
-          <li class="p-3.5 rounded-xl bg-[#131b2e] border border-slate-800">
-            <strong class="text-white text-sm">Step 1: Open Apps Script</strong><br>
-            In your Google Sheet, click <code class="text-emerald-400 bg-slate-900 px-1.5 py-0.5 rounded">Extensions &gt; Apps Script</code> from the top navigation bar.
-          </li>
-          <li class="p-3.5 rounded-xl bg-[#131b2e] border border-slate-800">
-            <strong class="text-white text-sm">Step 2: Paste the Client Snippet</strong><br>
-            Delete any existing code in the editor and paste the one-click client code from the <a href="/#integration" class="text-emerald-400 underline font-semibold">Integrations section</a>.
-          </li>
-          <li class="p-3.5 rounded-xl bg-[#131b2e] border border-slate-800">
-            <strong class="text-white text-sm">Step 3: Save and Run</strong><br>
-            Click the 💾 <strong>Save</strong> icon. Return to your spreadsheet and type any formula like <code class="text-emerald-400 bg-slate-900 px-1.5 py-0.5 rounded">=AI_CLEAN(A2)</code>.
-          </li>
-        </ol>
-      </section>
-
-      <!-- FUNCTIONS REFERENCE -->
-      <section id="functions-ref" class="space-y-12 pt-6 border-t border-slate-800">
+      <!-- 2-Minute Installation -->
+      <section id="installation" class="space-y-5 pt-6 border-t border-slate-200">
         <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">Function Reference</span>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-1">Complete AI Formulas Catalog</h2>
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 font-mono">Quick Setup</span>
+          <h2 class="text-2xl font-extrabold text-slate-900 mt-1">2-Minute Google Sheets Installation</h2>
         </div>
 
-        <!-- 1. SHEETPULSE -->
-        <article id="fn-sheetpulse" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=SHEETPULSE(cell, instruction)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-emerald-950 text-emerald-400 border border-emerald-700">General AI</span>
+        <div class="space-y-3 text-xs text-slate-700 font-medium">
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-1">
+            <strong class="text-slate-900 text-sm">1. Open Apps Script Editor</strong>
+            <p class="text-slate-600">In your Google Sheet, navigate to <code class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-mono font-bold">Extensions &gt; Apps Script</code>.</p>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Executes custom natural language instructions on cell data. Ideal for generating ad copy, summaries, hooks, or customized translations.
+
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-1">
+            <strong class="text-slate-900 text-sm">2. Paste the Client Snippet</strong>
+            <p class="text-slate-600">Erase any placeholder code and paste our standard integration script from the <a href="/#integration" class="text-emerald-700 font-bold underline">landing page</a>.</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-1">
+            <strong class="text-slate-900 text-sm">3. Save and Start Using Formulas</strong>
+            <p class="text-slate-600">Click 💾 <strong>Save</strong>. Return to your spreadsheet and type <code class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-mono font-bold">=AI_CLEAN(A2)</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Complete Formulas Catalog -->
+      <section id="functions-catalog" class="space-y-8 pt-6 border-t border-slate-200">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 font-mono">API Reference</span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">Complete AI Formulas Catalog</h2>
+        </div>
+
+        <!-- SHEETPULSE -->
+        <article id="fn-sheetpulse" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=SHEETPULSE(cell, instruction)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">General AI</span>
+          </div>
+          <p class="text-xs text-slate-600 font-medium">
+            Executes natural language prompts directly on cell contents. Used for taglines, copy variations, and custom data workflows.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
-            <strong>Syntax:</strong> =SHEETPULSE(A2, "Write a 4-word punchy tagline")
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
+            <strong>Syntax:</strong> =SHEETPULSE(A2, "Write a 4-word punchline")
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-xs font-mono border border-slate-800 bg-[#070b12] rounded-lg">
-              <tr class="bg-slate-900 text-slate-400 border-b border-slate-800"><th class="p-2 text-left">Input (A2)</th><th class="p-2 text-left">Instruction</th><th class="p-2 text-left text-emerald-400">Result</th></tr>
-              <tr><td class="p-2 border-r border-slate-800">SheetPulse AI</td><td class="p-2 border-r border-slate-800">Write a 4-word punchline</td><td class="p-2 text-emerald-300 font-bold">Unlock Data's Full Potential</td></tr>
+            <table class="w-full text-xs font-mono border border-slate-200 rounded-lg overflow-hidden bg-white">
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold"><th class="p-2.5 text-left">Input (A2)</th><th class="p-2.5 text-left">Instruction</th><th class="p-2.5 text-left text-emerald-700 font-bold">Output</th></tr>
+              <tr><td class="p-2.5 border-r border-slate-200">SheetPulse AI</td><td class="p-2.5 border-r border-slate-200">Write 4-word SaaS hook</td><td class="p-2.5 text-emerald-700 font-bold">Unlock Data's Full Potential</td></tr>
             </table>
           </div>
         </article>
 
-        <!-- 2. AI_CLEAN -->
-        <article id="fn-clean" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=AI_CLEAN(cell)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Data Sanitizer</span>
+        <!-- AI_CLEAN -->
+        <article id="fn-clean" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=AI_CLEAN(cell)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-800 font-bold border border-indigo-200">Data Sanitizer</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Standardizes irregular casing, trims excessive whitespace, fixes corrupted phone/email formats, and removes noisy artifacts.
+          <p class="text-xs text-slate-600 font-medium">
+            Fixes inconsistent casing, trims broken whitespace, standardizes email formats, and cleans messy lead lists.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
             <strong>Syntax:</strong> =AI_CLEAN(A2)
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-xs font-mono border border-slate-800 bg-[#070b12] rounded-lg">
-              <tr class="bg-slate-900 text-slate-400 border-b border-slate-800"><th class="p-2 text-left">Input (A2)</th><th class="p-2 text-left text-emerald-400">Cleaned Result</th></tr>
-              <tr><td class="p-2 border-r border-slate-800">   mAntU   pAtRA   @  GMAIL . COM  </td><td class="p-2 text-emerald-300 font-bold">mantupatra@gmail.com</td></tr>
+            <table class="w-full text-xs font-mono border border-slate-200 rounded-lg overflow-hidden bg-white">
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold"><th class="p-2.5 text-left">Input (A2)</th><th class="p-2.5 text-left text-emerald-700 font-bold">Cleaned Output</th></tr>
+              <tr><td class="p-2.5 border-r border-slate-200">   mAntU   pAtRA   @  GMAIL . COM  </td><td class="p-2.5 text-emerald-700 font-bold">mantupatra@gmail.com</td></tr>
             </table>
           </div>
         </article>
 
-        <!-- 3. AI_EXTRACT -->
-        <article id="fn-extract" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=AI_EXTRACT(cell, target_entity)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-teal-950 text-teal-300 border border-teal-700">Entity Parser</span>
+        <!-- AI_EXTRACT -->
+        <article id="fn-extract" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=AI_EXTRACT(cell, target_entity)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-teal-100 text-teal-800 font-bold border border-teal-200">Entity Parser</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Extracts specific data points (emails, phone numbers, prices, names, dates) using an automated fast-regex bypass followed by neural inference.
+          <p class="text-xs text-slate-600 font-medium">
+            Extracts specific entities (emails, phone numbers, prices, names, dates) using an automated fast-regex parser followed by neural fallback.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
-            <strong>Syntax:</strong> =AI_EXTRACT(A2, "email address")
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
+            <strong>Syntax:</strong> =AI_EXTRACT(A2, "CEO email address")
           </div>
         </article>
 
-        <!-- 4. AI_CLASSIFY -->
-        <article id="fn-classify" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=AI_CLASSIFY(cell, categories)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-violet-950 text-violet-300 border border-violet-700">Classification</span>
+        <!-- AI_CLASSIFY -->
+        <article id="fn-classify" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=AI_CLASSIFY(cell, categories)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-violet-100 text-violet-800 font-bold border border-violet-200">Classification</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Assigns text to exactly one category from your provided comma-separated list. Ideal for review sentiment, ticket triage, and expense categorisation.
+          <p class="text-xs text-slate-600 font-medium">
+            Assigns text to strictly one category from your comma-separated tag list. Ideal for review sentiment, ticket triage, and expense categorisation.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
             <strong>Syntax:</strong> =AI_CLASSIFY(A2, "Complaint, Feedback, Urgent")
           </div>
         </article>
 
-        <!-- 5. AI_FIX -->
-        <article id="fn-fix" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=AI_FIX(broken_formula, goal)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-amber-950 text-amber-300 border border-amber-700">Formula Repair</span>
+        <!-- AI_FIX -->
+        <article id="fn-fix" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=AI_FIX(broken_formula, goal)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-200">Formula Fixer</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
+          <p class="text-xs text-slate-600 font-medium">
             Detects syntax, index offset, or range errors in Google Sheets formulas (e.g. broken VLOOKUP, INDEX/MATCH) and returns the corrected working formula.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
             <strong>Syntax:</strong> =AI_FIX("=VLOOKUP(A2, B:C, 3, FALSE)", "Fix 2-column lookup")
           </div>
         </article>
 
-        <!-- 6. AI_SCRAPE -->
-        <article id="fn-scrape" class="p-6 rounded-2xl bg-[#131b2e] border border-slate-700/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 class="text-lg font-mono font-bold text-emerald-400">=AI_SCRAPE(url, question)</h3>
-            <span class="px-2.5 py-0.5 text-[11px] rounded bg-sky-950 text-sky-300 border border-sky-700">Live Scraper</span>
+        <!-- AI_SCRAPE -->
+        <article id="fn-scrape" class="p-6 rounded-2xl bg-white border border-slate-200 card-shadow space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+            <h3 class="text-base font-mono font-extrabold text-slate-900">=AI_SCRAPE(url, question)</h3>
+            <span class="px-3 py-0.5 text-xs rounded-full bg-sky-100 text-sky-800 font-bold border border-sky-200">Live Scraper</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Fetches live web content directly from a target URL and extracts the answer to your question in a single formula step.
+          <p class="text-xs text-slate-600 font-medium">
+            Fetches live web content directly from a target URL and extracts the answer to your query in a single formula step.
           </p>
-          <div class="bg-[#0d1322] p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-200">
-            <strong>Syntax:</strong> =AI_SCRAPE(A2, "Extract headline title")
+          <div class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-emerald-400">
+            <strong>Syntax:</strong> =AI_SCRAPE("https://stripe.com", "Extract pricing headline")
           </div>
         </article>
 
       </section>
 
-      <!-- TROUBLESHOOTING -->
-      <section id="common-errors" class="space-y-4 pt-6 border-t border-slate-800">
-        <h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
-          <span>⚠️</span> Troubleshooting & Best Practices
-        </h2>
+      <!-- Troubleshooting -->
+      <section id="common-errors" class="space-y-4 pt-6 border-t border-slate-200">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-rose-700 font-mono">Troubleshooting</span>
+          <h2 class="text-2xl font-extrabold text-slate-900 mt-1">Error Resolutions & Best Practices</h2>
+        </div>
 
-        <div class="space-y-3">
-          <div class="p-4 rounded-xl bg-[#131b2e] border border-slate-800 space-y-1 text-xs">
-            <p class="font-bold text-rose-400">Error: 401 Unauthorized / Invalid Key</p>
-            <p class="text-slate-300">Your <code class="text-emerald-400 font-mono">SHEETPULSE_API_KEY</code> is either missing or expired. Generate a fresh key from the landing page dashboard.</p>
+        <div class="space-y-3 text-xs font-medium">
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-1">
+            <p class="font-bold text-rose-600 text-sm">Error: 401 Unauthorized / Invalid Key</p>
+            <p class="text-slate-600">Your <code class="text-emerald-700 bg-emerald-50 px-1 rounded font-mono font-bold">SHEETPULSE_API_KEY</code> is invalid or empty. Generate a fresh key from the dashboard.</p>
           </div>
 
-          <div class="p-4 rounded-xl bg-[#131b2e] border border-slate-800 space-y-1 text-xs">
-            <p class="font-bold text-amber-400">Error: 402 Credits Exhausted</p>
-            <p class="text-slate-300">You have reached the free credit tier limit. Top-up credits or switch to Hosted Pro / BYOK mode.</p>
+          <div class="p-4 rounded-2xl bg-white border border-slate-200 card-shadow space-y-1">
+            <p class="font-bold text-amber-700 text-sm">Error: 402 Credits Exhausted</p>
+            <p class="text-slate-600">You reached your monthly credit limit. Top-up credits or switch to the Free BYOK plan.</p>
           </div>
 
-          <div class="p-4 rounded-xl bg-[#131b2e] border border-slate-800 space-y-1 text-xs">
-            <p class="font-bold text-indigo-400">Preventing Formula Recalculation</p>
-            <p class="text-slate-300">To freeze calculated values and prevent Google Sheets from re-triggering formulas on every sheet edit: Copy the calculated column &rarr; Right Click &rarr; <strong>Paste Special &gt; Values Only</strong>.</p>
+          <div id="recalculation" class="p-4 rounded-2xl bg-white border border-emerald-300 card-shadow space-y-1">
+            <p class="font-bold text-emerald-800 text-sm">⚡ Pro Tip: Prevent Formula Recalculation</p>
+            <p class="text-slate-600">To freeze output values and prevent Google Sheets from re-calculating formulas on every edit: Select the output column &rarr; Right Click &rarr; <strong>Paste Special &gt; Values Only</strong>.</p>
           </div>
         </div>
       </section>
@@ -299,14 +305,22 @@
   </div>
 
   <!-- Footer -->
-  <footer class="border-t border-slate-800 bg-[#070b12] py-8 text-center text-xs text-slate-400 font-mono">
-    &copy; 2026 SheetPulse AI Docs &bull; High-Performance Autonomous Spreadsheet Infrastructure
+  <footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 font-mono">
+    &copy; 2026 SheetPulse AI Docs &bull; Autonomous Spreadsheet Infrastructure
   </footer>
 
   <script>
     function toggleMobileSidebar() {
       const sb = document.getElementById('sidebar');
+      const bd = document.getElementById('sidebarBackdrop');
       sb.classList.toggle('-translate-x-full');
+      bd.classList.toggle('hidden');
+    }
+
+    function closeOnMobile() {
+      if (window.innerWidth < 768) {
+        toggleMobileSidebar();
+      }
     }
 
     function filterDocs() {

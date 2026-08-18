@@ -13,7 +13,7 @@
   <!-- Razorpay Checkout SDK -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-  <!-- Tailwind CSS & Fonts -->
+  <!-- Tailwind CSS & Google Fonts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -79,7 +79,7 @@
       </a>
       <span id="clusterHealthBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span id="clusterHealthText">PostgreSQL Connected</span>
+        <span id="clusterHealthText">Supabase Cluster Active</span>
       </span>
     </div>
 
@@ -122,7 +122,7 @@
 
   <main class="w-full flex-1">
     
-    <!-- ================= 1. HERO SECTION & LIVE DRAG PREVIEW ================= -->
+    <!-- ================= 1. HERO SECTION & LIVE PREVIEW ================= -->
     <section class="max-w-6xl mx-auto px-4 pt-12 pb-10 text-center space-y-6">
       <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-200 shadow-sm">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
@@ -619,7 +619,7 @@
       </div>
     </section>
 
-    <!-- ================= 8. DYNAMIC CODE VAULT ================= -->
+    <!-- ================= 8. DYNAMIC INTEGRATION CODE VAULT ================= -->
     <section id="integration" class="max-w-6xl mx-auto px-4 py-14 space-y-6">
       <header class="text-center space-y-2">
         <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Integration</span>
@@ -841,7 +841,6 @@ function callSheetPulse(text, inst, action) {
     let userSecretKey = localStorage.getItem('sheetpulse_key') || "YOUR_API_KEY_HERE";
     let selectedTier = "pro";
 
-    // --- SLEEK TOAST NOTIFICATION ENGINE ---
     function showToast(message, type = "success") {
       const box = document.getElementById('toastBox');
       const toast = document.createElement('div');
@@ -862,7 +861,6 @@ function callSheetPulse(text, inst, action) {
       document.getElementById('mobileNavMenu').classList.toggle('hidden');
     }
 
-    // --- CHECK SYSTEM HEALTH ---
     async function checkHealth() {
       try {
         const res = await fetch('/api/v1/health');
@@ -874,7 +872,6 @@ function callSheetPulse(text, inst, action) {
     }
     checkHealth();
 
-    // --- TEMPLATE DATA & CSV REGISTRY ---
     const TEMPLATE_STORE = {
       lead_enrichment: {
         title: "B2B Lead & Email Extractor Template",
@@ -1007,7 +1004,6 @@ function callSheetPulse(text, inst, action) {
       showToast("Template CSV downloaded!");
     }
 
-    // --- DASHBOARD LOGIC ---
     function openDashboardModal() {
       document.getElementById('dashboardModal').classList.remove('hidden');
       if (userSecretKey && userSecretKey !== "YOUR_API_KEY_HERE") {
@@ -1055,7 +1051,7 @@ function callSheetPulse(text, inst, action) {
           } else {
             tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">No recent activity recorded</td></tr>';
           }
-          showToast("Telemetry synced with Supabase!");
+          showToast("Dashboard synchronized!");
         } else {
           showToast("Key not recognized in cluster", "error");
         }
@@ -1095,7 +1091,6 @@ function callSheetPulse(text, inst, action) {
       }
     }
 
-    // --- ANIMATED DRAG-DOWN ENGINE ---
     const animatedRowData = [
       { id: 3, result: "ceo-office@retailpro.com", time: "0.18s" },
       { id: 4, result: "s.jenkins@hypercloud.dev", time: "0.22s" },
@@ -1147,7 +1142,6 @@ function callSheetPulse(text, inst, action) {
       }
     });
 
-    // --- ROI CALCULATOR ---
     function calculateROI() {
       const rows = parseInt(document.getElementById('rowSlider').value);
       document.getElementById('rowCountLabel').innerText = rows.toLocaleString() + ' rows';
@@ -1161,7 +1155,6 @@ function callSheetPulse(text, inst, action) {
 
     calculateROI();
 
-    // --- PLAYGROUND ENGINE ---
     const templates = {
       clean: { text: "   mAntU   pAtRA   @  GMAIL . COM  ", inst: "clean" },
       extract: { text: "For enterprise contact sales@scalehub.co or call +1-800-492-9102", inst: "email address" },
@@ -1203,11 +1196,15 @@ function callSheetPulse(text, inst, action) {
 
       const startTime = performance.now();
 
+      const activeKey = (userSecretKey && userSecretKey !== "YOUR_API_KEY_HERE" && (userSecretKey.startsWith("sp_") || userSecretKey.startsWith("gsk_"))) 
+                        ? userSecretKey 
+                        : "sp_demo_live";
+
       try {
         const res = await fetch('/api/v1/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: userSecretKey !== "YOUR_API_KEY_HERE" ? userSecretKey : "sp_demo_live" })
+          body: JSON.stringify({ text: text, instruction: instruction, action: action, api_key: activeKey })
         });
         const data = await res.json();
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
@@ -1217,7 +1214,7 @@ function callSheetPulse(text, inst, action) {
           providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : '⚡ Neural Cloud');
           speedBadge.innerText = 'Latency: ' + elapsed + 's';
           telemetry.innerText = 'Completed';
-          showToast("Playground output ready in " + elapsed + "s");
+          showToast("Computed in " + elapsed + "s");
         } else {
           output.innerHTML = '<span class="text-rose-600 font-bold">Error: ' + (data.detail || 'Failed') + '</span>';
           telemetry.innerText = 'Error';
@@ -1286,7 +1283,7 @@ function callSheetPulse(text, inst, action) {
         box.innerHTML = '✅ <strong>Your Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected below!</div>';
         updateCodeBoxWithKey(data.api_key);
         localStorage.setItem('sheetpulse_key', data.api_key);
-        showToast("Free API Key Generated & Injected!");
+        showToast("API Key Generated!");
       } catch (e) {
         box.innerHTML = 'Error generating key.';
       }
@@ -1381,11 +1378,7 @@ function callSheetPulse(text, inst, action) {
     function copyAppsScript() {
       const code = document.getElementById('codeSnippetBox').textContent;
       navigator.clipboard.writeText(code);
-      if (userSecretKey === "YOUR_API_KEY_HERE") {
-        showToast("Code copied! Remember to generate an API key.");
-      } else {
-        showToast("Apps Script copied with your active API key!");
-      }
+      showToast("Code copied to clipboard!");
     }
   </script>
 </body>

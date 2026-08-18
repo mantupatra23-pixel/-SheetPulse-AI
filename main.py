@@ -26,7 +26,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="19.0.0",
+    version="20.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -102,82 +102,85 @@ class DBConn:
         return cur
 
 def init_db():
-    with DBConn() as db:
-        if db.is_pg:
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS api_keys (
-                    key TEXT PRIMARY KEY,
-                    owner_name TEXT NOT NULL,
-                    tier TEXT DEFAULT 'free',
-                    credits_left INTEGER DEFAULT 100,
-                    total_used INTEGER DEFAULT 0,
-                    created_at DOUBLE PRECISION NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS orders (
-                    order_id TEXT PRIMARY KEY,
-                    payment_id TEXT,
-                    owner_name TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    tier TEXT NOT NULL,
-                    amount INTEGER NOT NULL,
-                    status TEXT DEFAULT 'created',
-                    created_at DOUBLE PRECISION NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS usage_logs (
-                    id SERIAL PRIMARY KEY,
-                    key TEXT,
-                    action TEXT,
-                    provider TEXT,
-                    latency REAL,
-                    input_length INTEGER,
-                    timestamp DOUBLE PRECISION NOT NULL
-                )
-            """)
-        else:
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS api_keys (
-                    key TEXT PRIMARY KEY,
-                    owner_name TEXT NOT NULL,
-                    tier TEXT DEFAULT 'free',
-                    credits_left INTEGER DEFAULT 100,
-                    total_used INTEGER DEFAULT 0,
-                    created_at REAL NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS orders (
-                    order_id TEXT PRIMARY KEY,
-                    payment_id TEXT,
-                    owner_name TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    tier TEXT NOT NULL,
-                    amount INTEGER NOT NULL,
-                    status TEXT DEFAULT 'created',
-                    created_at REAL NOT NULL
-                )
-            """)
-            db.execute("""
-                CREATE TABLE IF NOT EXISTS usage_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    key TEXT,
-                    action TEXT,
-                    provider TEXT,
-                    latency REAL,
-                    input_length INTEGER,
-                    timestamp REAL NOT NULL
-                )
-            """)
+    try:
+        with DBConn() as db:
+            if db.is_pg:
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        key TEXT PRIMARY KEY,
+                        owner_name TEXT NOT NULL,
+                        tier TEXT DEFAULT 'free',
+                        credits_left INTEGER DEFAULT 100,
+                        total_used INTEGER DEFAULT 0,
+                        created_at DOUBLE PRECISION NOT NULL
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS orders (
+                        order_id TEXT PRIMARY KEY,
+                        payment_id TEXT,
+                        owner_name TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        tier TEXT NOT NULL,
+                        amount INTEGER NOT NULL,
+                        status TEXT DEFAULT 'created',
+                        created_at DOUBLE PRECISION NOT NULL
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS usage_logs (
+                        id SERIAL PRIMARY KEY,
+                        key TEXT,
+                        action TEXT,
+                        provider TEXT,
+                        latency REAL,
+                        input_length INTEGER,
+                        timestamp DOUBLE PRECISION NOT NULL
+                    )
+                """)
+            else:
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        key TEXT PRIMARY KEY,
+                        owner_name TEXT NOT NULL,
+                        tier TEXT DEFAULT 'free',
+                        credits_left INTEGER DEFAULT 100,
+                        total_used INTEGER DEFAULT 0,
+                        created_at REAL NOT NULL
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS orders (
+                        order_id TEXT PRIMARY KEY,
+                        payment_id TEXT,
+                        owner_name TEXT NOT NULL,
+                        email TEXT NOT NULL,
+                        tier TEXT NOT NULL,
+                        amount INTEGER NOT NULL,
+                        status TEXT DEFAULT 'created',
+                        created_at REAL NOT NULL
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS usage_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        key TEXT,
+                        action TEXT,
+                        provider TEXT,
+                        latency REAL,
+                        input_length INTEGER,
+                        timestamp REAL NOT NULL
+                    )
+                """)
 
-        cur = db.execute("SELECT key FROM api_keys WHERE key = ?", ("sp_demo_live",))
-        if not cur.fetchone():
-            db.execute(
-                "INSERT INTO api_keys VALUES (?, ?, 'free', 10000, 0, ?)",
-                ("sp_demo_live", "Web Playground Sandbox", time.time())
-            )
+            cur = db.execute("SELECT key FROM api_keys WHERE key = ?", ("sp_demo_live",))
+            if not cur.fetchone():
+                db.execute(
+                    "INSERT INTO api_keys VALUES (?, ?, 'free', 10000, 0, ?)",
+                    ("sp_demo_live", "Web Playground Sandbox", time.time())
+                )
+    except Exception as e:
+        print(f"Database Init Notice: {e}")
 
 init_db()
 
@@ -187,23 +190,32 @@ def is_byok_key(key: str) -> bool:
 
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     sanitized_key = (api_key or "").strip()
-    if not sanitized_key or sanitized_key == "YOUR_API_KEY_HERE":
-        raise HTTPException(
-            status_code=401,
-            detail="Valid API Key required. Generate your key at https://sheetpulseai.onrender.com"
-        )
 
+    # 1. Instant Sandbox Bypass (Never blocks playground users)
+    if sanitized_key in ["sp_demo_live", "demo", "sandbox", "", "YOUR_API_KEY_HERE"]:
+        return {"owner": "Web Sandbox Demo", "tier": "free", "remaining": 9999}
+
+    # 2. BYOK Key Auto-Registration
+    if is_byok_key(sanitized_key):
+        try:
+            with DBConn() as db:
+                cur = db.execute("SELECT owner_name FROM api_keys WHERE key = ?", (sanitized_key,))
+                if not cur.fetchone():
+                    provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
+                    db.execute(
+                        "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
+                        (sanitized_key, provider_tag, amount, time.time())
+                    )
+                else:
+                    db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
+        except Exception:
+            pass
+        return {"owner": "BYOK User", "tier": "BYOK", "remaining": 999999}
+
+    # 3. Standard DB Lookup for registered keys
     with DBConn() as db:
         cur = db.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
-
-        if not row and is_byok_key(sanitized_key):
-            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
-            db.execute(
-                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
-                (sanitized_key, provider_tag, amount, time.time())
-            )
-            return {"owner": provider_tag, "tier": "BYOK", "remaining": 999999}
 
         if not row:
             raise HTTPException(status_code=401, detail="Invalid API Key. Key not recognized by cluster.")
@@ -212,12 +224,8 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
         if tier not in ["developer", "byok"] and credits_left < amount:
             raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
 
-        if tier == "byok":
-            db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
-        else:
-            db.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
-
-        return {"owner": owner_name, "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
+        db.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
+        return {"owner": owner_name, "tier": tier, "remaining": credits_left - amount}
 
 def log_request_event(api_key: str, action: str, provider: str, latency: float, input_len: int):
     try:
@@ -258,7 +266,7 @@ def fetch_url_text(url: str) -> str:
             clean_url = 'https://' + clean_url
         req = urllib.request.Request(
             clean_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
@@ -319,7 +327,7 @@ class ProcessRequest(BaseModel):
     text: str = Field("", max_length=25000)
     instruction: Optional[str] = Field("", max_length=2000)
     action: str = Field("custom", max_length=50)
-    api_key: Optional[str] = Field("")
+    api_key: Optional[str] = Field("sp_demo_live")
 
 class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
@@ -415,7 +423,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "19.0.0",
+        "version": "20.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -552,19 +560,23 @@ async def process_cell(req: ProcessRequest):
     if not text_content:
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    verify_and_deduct_credits(req.api_key or "", amount=1)
+    # 1. Quota & Auth Check
+    effective_key = req.api_key or "sp_demo_live"
+    verify_and_deduct_credits(effective_key, amount=1)
 
+    # 2. Regex Fast Extractor Bypass
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
             elapsed = round(time.time() - start_time, 3)
-            log_request_event(req.api_key or "anonymous", "extract", "Regex:UltraFast", elapsed, len(text_content))
+            log_request_event(effective_key, "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
+    # 3. Cache Lookup
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)
-        log_request_event(req.api_key or "anonymous", req.action, "Memory:Cache", elapsed, len(text_content))
+        log_request_event(effective_key, req.action, "Memory:Cache", elapsed, len(text_content))
         return {
             "success": True,
             "result": MEMORY_CACHE[cache_key]["result"],
@@ -577,11 +589,13 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
+        # Primary: Groq
         try:
-            result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
+            result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
         except Exception:
+            # Fallback: Gemini
             try:
-                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, req.api_key)
+                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, effective_key)
             except Exception as ge:
                 raise HTTPException(status_code=503, detail=f"Inference engines busy: {str(ge)}")
 
@@ -590,7 +604,7 @@ async def process_cell(req: ProcessRequest):
         MEMORY_CACHE[cache_key] = {"result": result, "provider": provider}
 
         elapsed = round(time.time() - start_time, 3)
-        log_request_event(req.api_key or "anonymous", req.action, provider, elapsed, len(text_content))
+        log_request_event(effective_key, req.action, provider, elapsed, len(text_content))
 
         return {"success": True, "result": result, "provider": provider, "cached": False}
 

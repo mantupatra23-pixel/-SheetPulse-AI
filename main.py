@@ -13,7 +13,6 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from groq import Groq
 
 # Optional PostgreSQL Driver (Supabase Pooler)
 try:
@@ -25,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="31.0.0",
+    version="32.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -38,16 +37,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Cluster Environment Configurations ---
-CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "").strip()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+def sanitize_key(val: str) -> str:
+    if not val:
+        return ""
+    return val.strip().strip("'\" \t\r\n")
 
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key")
-SQLITE_DB_PATH = os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db")
+# --- Cluster Environment Configurations ---
+CEREBRAS_API_KEY = sanitize_key(os.getenv("CEREBRAS_API_KEY", ""))
+GROQ_API_KEY = sanitize_key(os.getenv("GROQ_API_KEY", ""))
+OPENROUTER_API_KEY = sanitize_key(os.getenv("OPENROUTER_API_KEY", ""))
+GEMINI_API_KEY = sanitize_key(os.getenv("GEMINI_API_KEY", ""))
+DATABASE_URL = sanitize_key(os.getenv("DATABASE_URL", ""))
+
+RAZORPAY_KEY_ID = sanitize_key(os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo"))
+RAZORPAY_KEY_SECRET = sanitize_key(os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key"))
+SQLITE_DB_PATH = sanitize_key(os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db"))
 
 IS_POSTGRES = HAS_POSTGRES and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://"))
 pg_pool = None
@@ -333,41 +337,105 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= 3 HARDENED AI CALLERS =================
+# ================= DYNAMIC LIVE MODEL DISCOVERY =================
 
-# 1. Groq Caller (Official Client SDK)
-def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
-    if not key:
-        raise ValueError("Groq API key not set in environment")
-    
-    client = Groq(api_key=key, timeout=10.0)
-    errs = []
-    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+def get_live_models_for_key(provider: str, key: str) -> List[str]:
+    if provider == "groq":
         try:
-            res = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": usr_prompt}
-                ],
-                temperature=0.05,
-                max_tokens=150
-            )
-            content = res.choices[0].message.content or ""
-            out = clean_output(content)
-            if out:
-                return out, f"Groq:{model}"
-        except Exception as ex:
-            errs.append(f"{model} -> {str(ex)}")
-    raise ValueError(f"Groq failed: {'; '.join(errs)}")
+            r = requests.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {key}"}, timeout=6)
+            if r.status_code == 200:
+                data = r.json().get("data", [])
+                active = [m["id"] for m in data if "whisper" not in m["id"] and "guard" not in m["id"] and "embed" not in m["id"]]
+                if active:
+                    return active
+        except Exception:
+            pass
+        return ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
-# 2. OpenRouter Caller (Direct REST)
-def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
+    if provider == "cerebras":
+        try:
+            r = requests.get("https://api.cerebras.ai/v1/models", headers={"Authorization": f"Bearer {key}"}, timeout=6)
+            if r.status_code == 200:
+                data = r.json().get("data", [])
+                active = [m["id"] for m in data]
+                if active:
+                    return active
+        except Exception:
+            pass
+        return ["llama3.1-8b", "llama-3.3-70b"]
+
+    return []
+
+# ================= 3 ULTRA-RESILIENT AI CALLERS =================
+
+# 1. Groq Engine (Dynamic Auto-Select)
+def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = sanitize_key(custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY)
     if not key:
-        raise ValueError("OpenRouter API key not set in environment")
-    
+        raise ValueError("Groq API key missing or empty")
+
+    models = get_live_models_for_key("groq", key)
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    errs = []
+    for model in models:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=8)
+            if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"Groq:{model}"
+            else:
+                errs.append(f"{model} -> HTTP {resp.status_code}: {resp.text[:60]}")
+        except Exception as e:
+            errs.append(f"{model} -> {str(e)}")
+    raise ValueError(f"Groq failed ({len(models)} models tried): {'; '.join(errs[:2])}")
+
+# 2. Cerebras Engine (Dynamic Auto-Select)
+def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = sanitize_key(custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY)
+    if not key:
+        raise ValueError("Cerebras API key missing or empty")
+
+    models = get_live_models_for_key("cerebras", key)
+    url = "https://api.cerebras.ai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    errs = []
+    for model in models:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=8)
+            if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"Cerebras:{model}"
+            else:
+                errs.append(f"{model} -> HTTP {resp.status_code}: {resp.text[:60]}")
+        except Exception as e:
+            errs.append(f"{model} -> {str(e)}")
+    raise ValueError(f"Cerebras failed ({len(models)} models tried): {'; '.join(errs[:2])}")
+
+# 3. OpenRouter Engine
+def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = sanitize_key(custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY)
+    if not key:
+        raise ValueError("OpenRouter API key missing or empty")
+
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {key}",
@@ -375,66 +443,27 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
         "HTTP-Referer": "https://sheetpulseai.onrender.com",
         "X-Title": "SheetPulse AI"
     }
+    models = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free"]
     errs = []
-    models = [
-        "qwen/qwen-2.5-72b-instruct",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "google/gemini-2.0-flash-exp:free"
-    ]
     for model in models:
         try:
             payload = {
                 "model": model,
-                "messages": [
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": usr_prompt}
-                ],
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
-            resp = requests.post(url, headers=headers, json=payload, timeout=10)
+            resp = requests.post(url, headers=headers, json=payload, timeout=9)
             if resp.status_code == 200:
-                data = resp.json()
-                out = clean_output(data["choices"][0]["message"]["content"])
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
                 if out:
                     return out, f"OpenRouter:{model.split('/')[-1]}"
             else:
-                errs.append(f"{model} (HTTP {resp.status_code})")
-        except Exception as ex:
-            errs.append(f"{model} -> {str(ex)}")
+                errs.append(f"{model} -> HTTP {resp.status_code}")
+        except Exception as e:
+            errs.append(f"{model} -> {str(e)}")
     raise ValueError(f"OpenRouter failed: {'; '.join(errs)}")
-
-# 3. Cerebras Caller (Direct REST)
-def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
-    if not key:
-        raise ValueError("Cerebras API key not set in environment")
-    
-    url = "https://api.cerebras.ai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-    errs = []
-    for model in ["llama3.1-8b", "llama-3.3-70b"]:
-        try:
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": usr_prompt}
-                ],
-                "temperature": 0.05,
-                "max_tokens": 150
-            }
-            resp = requests.post(url, headers=headers, json=payload, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                out = clean_output(data["choices"][0]["message"]["content"])
-                if out:
-                    return out, f"Cerebras:{model}"
-            else:
-                errs.append(f"{model} (HTTP {resp.status_code}: {resp.text[:80]})")
-        except Exception as ex:
-            errs.append(f"{model} -> {str(ex)}")
-    raise ValueError(f"Cerebras failed: {'; '.join(errs)}")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -488,7 +517,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "31.0.0",
+        "version": "32.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -512,7 +541,7 @@ def debug_individual_providers():
         out, prov = _sync_groq_call(test_sys, test_usr)
         results["groq"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
-        results["groq"] = {"status": "failed", "error": str(e)}
+        results["groq"] = {"status": "failed", "error": str(e), "key_preview": GROQ_API_KEY[:6] + "..." if GROQ_API_KEY else "none"}
 
     # 2. Test OpenRouter
     try:
@@ -526,7 +555,7 @@ def debug_individual_providers():
         out, prov = _sync_cerebras_call(test_sys, test_usr)
         results["cerebras"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
-        results["cerebras"] = {"status": "failed", "error": str(e)}
+        results["cerebras"] = {"status": "failed", "error": str(e), "key_preview": CEREBRAS_API_KEY[:6] + "..." if CEREBRAS_API_KEY else "none"}
 
     return {"diagnostic_report": results}
 
@@ -686,20 +715,20 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Priority BYOK Keys
+        # Priority BYOK Routing
         if effective_key.startswith("gsk_"):
             try:
                 result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
             except Exception:
                 pass
-        elif effective_key.startswith("sk-"):
-            try:
-                result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt, effective_key)
-            except Exception:
-                pass
         elif effective_key.startswith("csk-"):
             try:
                 result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt, effective_key)
+            except Exception:
+                pass
+        elif effective_key.startswith("sk-"):
+            try:
+                result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt, effective_key)
             except Exception:
                 pass
 

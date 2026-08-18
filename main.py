@@ -8,12 +8,12 @@ import urllib.request
 import json
 import uuid
 from typing import List, Optional, Dict
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 
-app = FastAPI(title="SheetPulse AI Powerhouse Engine", version="4.0.0")
+app = FastAPI(title="SheetPulse AI Triple-Engine SaaS", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,10 +24,11 @@ app.add_middleware(
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DB_PATH = "sheetpulse.db"
 
-# --- DATABASE SETUP (Zero Extra Dependencies) ---
+# --- SQLite Database ---
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -41,7 +42,6 @@ def init_db():
             created_at REAL
         )
     """)
-    # Seed default developer key if not exists
     cur.execute("SELECT key FROM api_keys WHERE key = 'sp_demo_live'")
     if not cur.fetchone():
         cur.execute("INSERT INTO api_keys VALUES ('sp_demo_live', 'Developer Demo', 'developer', 10000, 0, ?)", (time.time(),))
@@ -62,22 +62,20 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1):
     row = cur.fetchone()
     if not row:
         conn.close()
-        raise HTTPException(status_code=401, detail="Invalid API Key. Generate one at /api/v1/keys/new")
+        raise HTTPException(status_code=401, detail="Invalid API Key")
     
     credits_left, tier = row["credits_left"], row["tier"]
     if tier != "developer" and credits_left < amount:
         conn.close()
-        raise HTTPException(status_code=402, detail="Credit quota exhausted. Upgrade your plan.")
+        raise HTTPException(status_code=402, detail="Credits exhausted")
 
     cur.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, api_key))
     conn.commit()
     conn.close()
 
-# In-Memory Cache
 MEMORY_CACHE: Dict[str, dict] = {}
-CONCURRENCY_LIMIT = asyncio.Semaphore(20)
+CONCURRENCY_LIMIT = asyncio.Semaphore(25)
 
-# --- SMART REGEX PRE-EXTRACTOR (0ms Latency & 0 Token Cost) ---
 REGEX_PATTERNS = {
     "email": r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+',
     "phone": r'(\+?[0-9]{1,3}[-.\s]?)?\(?[0-9]{2,5}\)?[-.\s]?[0-9]{3,5}[-.\s]?[0-9]{3,5}',
@@ -119,24 +117,48 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest]
     api_key: Optional[str] = "sp_demo_live"
 
-# --- LLM ENGINES (Priority 1: Groq -> Priority 2: Gemini) ---
+# --- PROVIDER 1: Cerebras (Ultra-Fast 1800 Tok/s) ---
+def call_cerebras_engine(sys_prompt: str, usr_prompt: str):
+    if not CEREBRAS_API_KEY:
+        raise Exception("CEREBRAS_API_KEY missing")
+    
+    url = "https://api.cerebras.ai/v1/chat/completions"
+    payload = {
+        "model": "llama3.1-8b",
+        "messages": [
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": usr_prompt}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 250
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {CEREBRAS_API_KEY}"
+        }
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        res = json.loads(resp.read().decode())
+        raw = res["choices"][0]["message"]["content"]
+        return clean_output(raw), "Cerebras:Llama-3.1-8b"
+
+# --- PROVIDER 2: Groq Engine ---
 def call_groq_engine(sys_prompt: str, usr_prompt: str):
     if not GROQ_API_KEY:
         raise Exception("GROQ_API_KEY missing")
     client = Groq(api_key=GROQ_API_KEY)
-    try:
-        all_models = client.models.list().data
-        active_models = [m.id for m in all_models if not any(x in m.id.lower() for x in ["whisper", "guard", "vision", "embed"])]
-    except Exception:
-        active_models = ["llama-3.3-70b-versatile", "gemma2-9b-it"]
-
+    all_models = client.models.list().data
+    active_models = [m.id for m in all_models if not any(x in m.id.lower() for x in ["whisper", "guard", "vision", "embed"])]
     for model_name in active_models:
         try:
             res = client.chat.completions.create(
                 model=model_name,
                 messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
                 temperature=0.1,
-                max_tokens=300
+                max_tokens=250
             )
             raw = res.choices[0].message.content or ""
             cleaned = clean_output(raw)
@@ -144,39 +166,52 @@ def call_groq_engine(sys_prompt: str, usr_prompt: str):
                 return cleaned, f"Groq:{model_name}"
         except Exception:
             continue
-    raise Exception("Groq models unavailable")
+    raise Exception("Groq cluster busy")
 
-def call_gemini_fallback(sys_prompt: str, usr_prompt: str):
-    if not GEMINI_API_KEY:
-        raise Exception("GEMINI_API_KEY missing")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+# --- PROVIDER 3: OpenRouter (Universal Free Pool) ---
+def call_openrouter_engine(sys_prompt: str, usr_prompt: str):
+    if not OPENROUTER_API_KEY:
+        raise Exception("OPENROUTER_API_KEY missing")
+    
+    url = "https://openrouter.ai/api/v1/chat/completions"
     payload = {
-        "contents": [{"parts": [{"text": f"{sys_prompt}\n\n{usr_prompt}"}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 300}
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "messages": [
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": usr_prompt}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 250
     }
-    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=15) as response:
-        res = json.loads(response.read().decode())
-        raw = res["candidates"][0]["content"]["parts"][0]["text"]
-        return clean_output(raw), "Google:Gemini-1.5-Flash"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "https://sheetpulseai.onrender.com",
+            "X-Title": "SheetPulse AI"
+        }
+    )
+    with urllib.request.urlopen(req, timeout=12) as resp:
+        res = json.loads(resp.read().decode())
+        raw = res["choices"][0]["message"]["content"]
+        return clean_output(raw), "OpenRouter:Llama-3.3-70b-Free"
 
 @app.get("/")
 def system_status():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
-    users_count, total_executed = cur.fetchone()
-    conn.close()
     return {
         "status": "online",
-        "service": "SheetPulse AI Powerhouse Engine",
-        "version": "4.0.0",
-        "registered_keys": users_count,
-        "total_cells_processed": total_executed or 0,
-        "active_cache_keys": len(MEMORY_CACHE)
+        "service": "SheetPulse AI Triple Engine",
+        "version": "5.0.0",
+        "providers_configured": {
+            "cerebras": bool(CEREBRAS_API_KEY),
+            "groq": bool(GROQ_API_KEY),
+            "openrouter": bool(OPENROUTER_API_KEY)
+        },
+        "cache_entries": len(MEMORY_CACHE)
     }
 
-# --- AUTH & API KEY MANAGEMENT ---
 @app.post("/api/v1/keys/new")
 def create_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -199,27 +234,22 @@ def check_balance(api_key: str):
         raise HTTPException(status_code=404, detail="API Key not found")
     return dict(row)
 
-# --- CORE INFERENCE ROUTE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     if not req.text or not req.text.strip():
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    # 1. Fast Regex Check for Entity Extraction
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(req.text, req.instruction)
         if fast_match:
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 2. In-Memory Cache Check
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{req.text}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         return {"success": True, "result": MEMORY_CACHE[cache_key]["result"], "provider": MEMORY_CACHE[cache_key]["provider"], "cached": True}
 
-    # 3. Credit Verification & Deduction
     verify_and_deduct_credits(req.api_key or "sp_demo_live", amount=1)
 
-    # 4. Prompt Resolution
     act = req.action.lower()
     if act == "clean":
         sys = "Standardize formatting, fix broken spacing/casing, clean text. Output ONLY cleaned result."
@@ -242,13 +272,19 @@ async def process_cell(req: ProcessRequest):
 
     async with CONCURRENCY_LIMIT:
         result, provider = None, None
+        # Tier 1: Cerebras
         try:
-            result, provider = call_groq_engine(sys, usr)
+            result, provider = call_cerebras_engine(sys, usr)
         except Exception:
+            # Tier 2: Groq
             try:
-                result, provider = call_gemini_fallback(sys, usr)
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Inference cluster failed: {e}")
+                result, provider = call_groq_engine(sys, usr)
+            except Exception:
+                # Tier 3: OpenRouter
+                try:
+                    result, provider = call_openrouter_engine(sys, usr)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"All 3 AI clusters exhausted: {e}")
 
         if len(MEMORY_CACHE) >= 2000:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

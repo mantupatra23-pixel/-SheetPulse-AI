@@ -18,7 +18,7 @@ from groq import Groq
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="13.0.0",
+    version="14.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -31,16 +31,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Environment Configurations ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "").strip()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
-# Razorpay Keys (Set in Render Environment Variables)
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key")
-
 DB_PATH = os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db")
 
 # --- SQLite Database Layer ---
@@ -369,18 +366,16 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "13.0.0",
+        "version": "14.0.0",
         "active_keys": u_count or 0,
         "total_cells_processed": total_exec or 0,
         "logged_events": log_count or 0,
-        "cache_entries": len(MEMORY_CACHE),
-        "payment_gateway": "Razorpay Live Ready" if RAZORPAY_KEY_ID != "rzp_test_SheetPulseDemo" else "Sandbox Mode"
+        "cache_entries": len(MEMORY_CACHE)
     }
 
-# --- PAYMENT INTEGRATION: ORDER CREATION & VERIFICATION ---
+# --- PAYMENT INTEGRATION ---
 @app.post("/api/v1/payments/create-order")
 def create_payment_order(req: CreateOrderRequest):
-    # Prices: Pro = $12 (Rs 999), Agency = $29 (Rs 2499)
     amount_in_paise = 99900 if req.tier == "pro" else 249900
     generated_order_id = f"order_{uuid.uuid4().hex[:14]}"
     
@@ -406,7 +401,6 @@ def create_payment_order(req: CreateOrderRequest):
 
 @app.post("/api/v1/payments/verify-payment")
 def verify_payment(req: VerifyPaymentRequest):
-    # In live mode with real keys, verify HMAC-SHA256 signature
     if RAZORPAY_KEY_SECRET != "demo_secret_key":
         generated_signature = hmac.new(
             RAZORPAY_KEY_SECRET.encode('utf-8'),
@@ -417,7 +411,6 @@ def verify_payment(req: VerifyPaymentRequest):
         if not hmac.compare_digest(generated_signature, req.razorpay_signature):
             raise HTTPException(status_code=400, detail="Invalid Payment Signature")
 
-    # Generate Private Key with Quota Allotment
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
     credits_allotted = 5000 if req.tier == "pro" else 30000
 
@@ -443,7 +436,47 @@ def verify_payment(req: VerifyPaymentRequest):
         "payment_id": req.razorpay_payment_id
     }
 
-# --- Tenant Key Management Endpoints ---
+# --- COMPLETE DASHBOARD & ANALYTICS ENDPOINT ---
+@app.get("/api/v1/dashboard/stats")
+def get_user_dashboard(api_key: str):
+    sanitized_key = (api_key or "").strip()
+    if not sanitized_key:
+        raise HTTPException(status_code=400, detail="API Key parameter required")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
+    key_row = cur.fetchone()
+    if not key_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="API Key not found")
+
+    cur.execute(
+        "SELECT action, provider, latency, timestamp FROM usage_logs WHERE key = ? ORDER BY id DESC LIMIT 15",
+        (sanitized_key,)
+    )
+    recent_logs = [dict(r) for r in cur.fetchall()]
+
+    cur.execute("SELECT AVG(latency) FROM usage_logs WHERE key = ?", (sanitized_key,))
+    avg_lat = cur.fetchone()[0] or 0.22
+
+    conn.close()
+
+    initial_quota = 100 if key_row["tier"] == "free" else (5000 if key_row["tier"] == "pro" else 30000)
+    used_percentage = min(100, round((key_row["total_used"] / max(1, key_row["total_used"] + key_row["credits_left"])) * 100))
+
+    return {
+        "success": True,
+        "owner": key_row["owner_name"],
+        "tier": key_row["tier"].upper(),
+        "credits_left": key_row["credits_left"],
+        "total_used": key_row["total_used"],
+        "used_percentage": used_percentage,
+        "avg_latency": f"{avg_lat:.2f}s",
+        "created_at": time.strftime("%d %b %Y", time.localtime(key_row["created_at"])),
+        "recent_logs": recent_logs
+    }
+
 @app.post("/api/v1/keys/new")
 def create_free_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -464,18 +497,7 @@ def create_free_api_key(req: KeyGenRequest):
         "tier": req.tier
     }
 
-@app.get("/api/v1/keys/balance")
-def check_balance(api_key: str):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (api_key.strip(),))
-    row = cur.fetchone()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="API Key not found")
-    return dict(row)
-
-# --- Core Single Cell Process Route ---
+# --- Core Process Route ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()

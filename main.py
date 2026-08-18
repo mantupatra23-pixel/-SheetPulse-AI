@@ -26,7 +26,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="22.0.0",
+    version="23.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -39,10 +39,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Environment Configurations ---
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+# --- 3 Backend Keys from Render Environment ---
+CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key")
@@ -188,11 +190,9 @@ def is_byok_key(key: str) -> bool:
     k = (key or "").strip()
     return k.startswith("gsk_") or k.startswith("csk-") or k.startswith("sk-") or k.startswith("AIza")
 
-# --- RESILIENT QUOTA & AUTH WITH AUTO-REGISTRATION ---
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
     sanitized_key = (api_key or "").strip()
 
-    # 1. Instant Sandbox Demo Bypass
     if not sanitized_key or sanitized_key in ["sp_demo_live", "demo", "sandbox", "YOUR_API_KEY_HERE"]:
         return {"owner": "Web Sandbox Demo", "tier": "free", "remaining": 9999}
 
@@ -200,16 +200,14 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
         cur = db.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
 
-        # Auto-Register BYOK Key if not in DB
         if not row and is_byok_key(sanitized_key):
-            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
+            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Cerebras BYOK" if sanitized_key.startswith("csk-") else "BYOK Provider")
             db.execute(
                 "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
                 (sanitized_key, provider_tag, amount, time.time())
             )
             return {"owner": provider_tag, "tier": "BYOK", "remaining": 999999}
 
-        # Auto-Register any Client 'sp_' Key into DB if missing
         if not row and sanitized_key.startswith("sp_"):
             db.execute(
                 "INSERT INTO api_keys VALUES (?, ?, 'free', 100, ?, ?)",
@@ -218,11 +216,11 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
             return {"owner": "Workspace User", "tier": "free", "remaining": 100 - amount}
 
         if not row:
-            raise HTTPException(status_code=401, detail="Invalid API Key. Please generate a valid key.")
+            raise HTTPException(status_code=401, detail="Invalid API Key. Please generate a key.")
 
         owner_name, tier, credits_left, total_used = row[0], row[1], row[2], row[3]
         if tier not in ["developer", "byok"] and credits_left < amount:
-            raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
+            raise HTTPException(status_code=402, detail="Credit quota exhausted. Please upgrade.")
 
         if tier == "byok":
             db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
@@ -311,7 +309,6 @@ def clean_output(text: str) -> str:
         text = lines[0]
     return text.strip('*_ `').strip()
 
-# --- Pydantic Data Models ---
 class KeyGenRequest(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
     tier: Optional[str] = Field("free", pattern="^(free|pro|developer)$")
@@ -338,11 +335,35 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# --- Primary Engine (Groq) & Fallback Engine (Gemini) ---
+# --- PROVIDER 1: CEREBRAS (Ultra-Fast Hardware) ---
+def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
+    if not key:
+        raise ValueError("Cerebras unconfigured")
+    url = "https://api.cerebras.ai/v1/chat/completions"
+    payload = {
+        "model": "llama3.1-8b",
+        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+        "temperature": 0.05,
+        "max_tokens": 150
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
+    )
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        res = json.loads(resp.read().decode())
+        out = clean_output(res["choices"][0]["message"]["content"])
+        if not out:
+            raise ValueError("Empty output from Cerebras")
+        return out, "Cerebras:Llama-3.1-8b"
+
+# --- PROVIDER 2: GROQ (High Throughput) ---
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not effective_key:
-        raise ValueError("Groq key unconfigured")
+        raise ValueError("Groq unconfigured")
     client = Groq(api_key=effective_key, timeout=8.0)
     for model_name in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
         try:
@@ -359,11 +380,44 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
             continue
     raise ValueError("Groq models exhausted")
 
+# --- PROVIDER 3: OPENROUTER (Resilient Multi-Model Pool) ---
+def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
+    if not key:
+        raise ValueError("OpenRouter unconfigured")
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    for model in ["meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.1-8b-instruct:free", "meta-llama/llama-3.3-70b-instruct"]:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {key}",
+                    "HTTP-Referer": "https://sheetpulseai.onrender.com",
+                    "X-Title": "SheetPulse AI"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=9) as resp:
+                res = json.loads(resp.read().decode())
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"OpenRouter:{model.split('/')[-1]}"
+        except Exception:
+            continue
+    raise ValueError("OpenRouter models exhausted")
+
+# --- PROVIDER 4: OPTIONAL GEMINI (Only if user brings AIza key or env is set) ---
 def _sync_gemini_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("AIza")) else GEMINI_API_KEY
     if not effective_key:
         raise ValueError("Gemini key unconfigured")
-    
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={effective_key}"
     payload = {
         "contents": [{"parts": [{"text": f"{sys_prompt}\n\n{usr_prompt}"}]}],
@@ -429,14 +483,18 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "22.0.0",
+        "version": "23.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
-        "logged_events": log_count
+        "logged_events": log_count,
+        "cluster_providers": {
+            "cerebras": bool(CEREBRAS_API_KEY),
+            "groq": bool(GROQ_API_KEY),
+            "openrouter": bool(OPENROUTER_API_KEY)
+        }
     }
 
-# --- REAL-TIME TELEMETRY DASHBOARD ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
@@ -449,7 +507,7 @@ def get_user_dashboard(api_key: str):
 
         if not key_row:
             if is_byok_key(sanitized_key):
-                provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else "Gemini BYOK"
+                provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Cerebras BYOK" if sanitized_key.startswith("csk-") else "BYOK Provider")
                 db.execute("INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)", (sanitized_key, provider_tag, time.time()))
             elif sanitized_key.startswith("sp_"):
                 db.execute("INSERT INTO api_keys VALUES (?, ?, 'free', 100, 0, ?)", (sanitized_key, "Workspace User", time.time()))
@@ -556,7 +614,7 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
-# --- PROCESS CELL PIPELINE ---
+# --- PROCESS CELL CASCADE (Cerebras -> Groq -> OpenRouter) ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -595,15 +653,47 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Primary: Groq
-        try:
-            result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
-        except Exception:
-            # Fallback: Gemini
+        # Priority Routing for explicit BYOK keys
+        if effective_key.startswith("gsk_"):
+            try:
+                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, effective_key)
+            except Exception:
+                pass
+        elif effective_key.startswith("csk-"):
+            try:
+                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt, effective_key)
+            except Exception:
+                pass
+        elif effective_key.startswith("sk-"):
+            try:
+                result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt, effective_key)
+            except Exception:
+                pass
+        elif effective_key.startswith("AIza"):
             try:
                 result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, effective_key)
-            except Exception as ge:
-                raise HTTPException(status_code=503, detail=f"Inference engines busy: {str(ge)}")
+            except Exception:
+                pass
+
+        # Backend Cluster Cascade: Cerebras -> Groq -> OpenRouter -> Gemini
+        if not result:
+            try:
+                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)
+            except Exception:
+                try:
+                    result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt)
+                except Exception:
+                    try:
+                        result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt)
+                    except Exception:
+                        if GEMINI_API_KEY:
+                            try:
+                                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt)
+                            except Exception:
+                                pass
+
+        if not result:
+            raise HTTPException(status_code=503, detail="Inference cluster busy. Please retry.")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

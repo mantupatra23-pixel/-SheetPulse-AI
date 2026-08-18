@@ -1,6 +1,6 @@
 fastapi
-uvicorn[standard]
+uvicorn
+groq
+psycopg2-binary
 pydantic
 requests
-groq
-python-dotenv

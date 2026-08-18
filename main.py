@@ -16,9 +16,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from groq import Groq
 
+# Optional PostgreSQL Driver (for Supabase connection)
+try:
+    import psycopg2
+    from psycopg2 import pool
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
+
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="16.0.0",
+    version="18.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -31,71 +39,142 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Environment Configurations ---
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "").strip()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "demo_secret_key")
-DB_PATH = os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db")
+SQLITE_DB_PATH = os.getenv("SHEETPULSE_DB_PATH", "sheetpulse.db")
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=25.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA synchronous=NORMAL;")
-    return conn
+IS_POSTGRES = HAS_POSTGRES and (DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://"))
+pg_pool = None
+
+if IS_POSTGRES:
+    cleaned_url = DATABASE_URL
+    if cleaned_url.startswith("postgres://"):
+        cleaned_url = cleaned_url.replace("postgres://", "postgresql://", 1)
+    try:
+        pg_pool = psycopg2.pool.SimpleConnectionPool(1, 20, cleaned_url, sslmode="require")
+    except Exception as e:
+        print(f"Warning: Supabase connection failed ({e}), falling back to SQLite.")
+        IS_POSTGRES = False
+
+class DBConn:
+    def __init__(self):
+        self.is_pg = IS_POSTGRES
+        self.conn = None
+
+    def __enter__(self):
+        if self.is_pg:
+            self.conn = pg_pool.getconn()
+        else:
+            self.conn = sqlite3.connect(SQLITE_DB_PATH, timeout=25.0)
+            self.conn.row_factory = sqlite3.Row
+            self.conn.execute("PRAGMA journal_mode=WAL;")
+            self.conn.execute("PRAGMA synchronous=NORMAL;")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.is_pg:
+            if self.conn:
+                if exc_type:
+                    self.conn.rollback()
+                else:
+                    self.conn.commit()
+                pg_pool.putconn(self.conn)
+        else:
+            if self.conn:
+                if exc_type:
+                    self.conn.rollback()
+                else:
+                    self.conn.commit()
+                self.conn.close()
+
+    def execute(self, query: str, params: tuple = ()):
+        cur = self.conn.cursor()
+        if self.is_pg:
+            formatted_query = query.replace("?", "%s")
+            cur.execute(formatted_query, params)
+        else:
+            cur.execute(query, params)
+        return cur
 
 def init_db():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS api_keys (
-            key TEXT PRIMARY KEY,
-            owner_name TEXT NOT NULL,
-            tier TEXT DEFAULT 'free',
-            credits_left INTEGER DEFAULT 100,
-            total_used INTEGER DEFAULT 0,
-            created_at REAL NOT NULL
-        )
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS orders (
-            order_id TEXT PRIMARY KEY,
-            payment_id TEXT,
-            owner_name TEXT NOT NULL,
-            email TEXT NOT NULL,
-            tier TEXT NOT NULL,
-            amount INTEGER NOT NULL,
-            status TEXT DEFAULT 'created',
-            created_at REAL NOT NULL
-        )
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS usage_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT,
-            action TEXT,
-            provider TEXT,
-            latency REAL,
-            input_length INTEGER,
-            timestamp REAL NOT NULL
-        )
-    """)
-    cur.execute("SELECT key FROM api_keys WHERE key = 'sp_demo_live'")
-    if not cur.fetchone():
-        cur.execute(
-            "INSERT INTO api_keys VALUES ('sp_demo_live', 'Web Playground Sandbox', 'free', 10000, 0, ?)",
-            (time.time(),)
-        )
-    conn.commit()
-    conn.close()
+    with DBConn() as db:
+        if db.is_pg:
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    key TEXT PRIMARY KEY,
+                    owner_name TEXT NOT NULL,
+                    tier TEXT DEFAULT 'free',
+                    credits_left INTEGER DEFAULT 100,
+                    total_used INTEGER DEFAULT 0,
+                    created_at DOUBLE PRECISION NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS orders (
+                    order_id TEXT PRIMARY KEY,
+                    payment_id TEXT,
+                    owner_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    tier TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    status TEXT DEFAULT 'created',
+                    created_at DOUBLE PRECISION NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS usage_logs (
+                    id SERIAL PRIMARY KEY,
+                    key TEXT,
+                    action TEXT,
+                    provider TEXT,
+                    latency REAL,
+                    input_length INTEGER,
+                    timestamp DOUBLE PRECISION NOT NULL
+                );
+            """)
+        else:
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    key TEXT PRIMARY KEY,
+                    owner_name TEXT NOT NULL,
+                    tier TEXT DEFAULT 'free',
+                    credits_left INTEGER DEFAULT 100,
+                    total_used INTEGER DEFAULT 0,
+                    created_at REAL NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS orders (
+                    order_id TEXT PRIMARY KEY,
+                    payment_id TEXT,
+                    owner_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    tier TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    status TEXT DEFAULT 'created',
+                    created_at REAL NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS usage_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key TEXT,
+                    action TEXT,
+                    provider TEXT,
+                    latency REAL,
+                    input_length INTEGER,
+                    timestamp REAL NOT NULL
+                );
+            """)
+
+        cur = db.execute("SELECT key FROM api_keys WHERE key = ?", ("sp_demo_live",))
+        if not cur.fetchone():
+            db.execute(
+                "INSERT INTO api_keys VALUES (?, ?, 'free', 10000, 0, ?)",
+                ("sp_demo_live", "Web Playground Sandbox", time.time())
+            )
 
 init_db()
 
 def is_byok_key(key: str) -> bool:
-    k = key.strip()
+    k = (key or "").strip()
     return k.startswith("gsk_") or k.startswith("csk-") or k.startswith("sk-") or k.startswith("AIza")
 
 def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
@@ -106,48 +185,39 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
             detail="Valid API Key required. Generate your key at https://sheetpulseai.onrender.com"
         )
 
-    conn = get_db()
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
+    with DBConn() as db:
+        cur = db.execute("SELECT owner_name, tier, credits_left, total_used FROM api_keys WHERE key = ?", (sanitized_key,))
         row = cur.fetchone()
 
         if not row and is_byok_key(sanitized_key):
-            byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else "BYOK Provider"
-            cur.execute(
+            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else ("Gemini BYOK" if sanitized_key.startswith("AIza") else "BYOK Provider")
+            db.execute(
                 "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
-                (sanitized_key, byok_provider, amount, time.time())
+                (sanitized_key, provider_tag, amount, time.time())
             )
-            conn.commit()
-            return {"owner": byok_provider, "tier": "BYOK", "remaining": 999999}
+            return {"owner": provider_tag, "tier": "BYOK", "remaining": 999999}
 
         if not row:
             raise HTTPException(status_code=401, detail="Invalid API Key. Key not recognized by cluster.")
-        
-        tier, credits_left = row["tier"], row["credits_left"]
+
+        owner_name, tier, credits_left, total_used = row[0], row[1], row[2], row[3]
         if tier not in ["developer", "byok"] and credits_left < amount:
             raise HTTPException(status_code=402, detail="Credit quota exhausted. Please top-up or upgrade your tier.")
 
         if tier == "byok":
-            cur.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
+            db.execute("UPDATE api_keys SET total_used = total_used + ? WHERE key = ?", (amount, sanitized_key))
         else:
-            cur.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
-        conn.commit()
+            db.execute("UPDATE api_keys SET credits_left = credits_left - ?, total_used = total_used + ? WHERE key = ?", (amount, amount, sanitized_key))
 
-        return {"owner": row["owner_name"], "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
-    finally:
-        conn.close()
+        return {"owner": owner_name, "tier": tier, "remaining": credits_left if tier == "byok" else credits_left - amount}
 
 def log_request_event(api_key: str, action: str, provider: str, latency: float, input_len: int):
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO usage_logs (key, action, provider, latency, input_length, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-            (api_key or "anonymous", action, provider, latency, input_len, time.time())
-        )
-        conn.commit()
-        conn.close()
+        with DBConn() as db:
+            db.execute(
+                "INSERT INTO usage_logs (key, action, provider, latency, input_length, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (api_key or "anonymous", action, provider, latency, input_len, time.time())
+            )
     except Exception:
         pass
 
@@ -180,7 +250,7 @@ def fetch_url_text(url: str) -> str:
             clean_url = 'https://' + clean_url
         req = urllib.request.Request(
             clean_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
@@ -198,7 +268,7 @@ def clean_output(text: str) -> str:
         text = text.split("</think>")[-1]
     elif "<think>" in text:
         text = re.sub(r'<think>.*', '', text, flags=re.DOTALL)
-    
+
     final_patterns = [
         r'\*\*Final Answer:?\*\*\s*(.+)',
         r'Final Answer:?\s*(.+)',
@@ -247,32 +317,11 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-def _sync_cerebras_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
-    if not CEREBRAS_API_KEY:
-        raise ValueError("Cerebras unconfigured")
-    url = "https://api.cerebras.ai/v1/chat/completions"
-    payload = {
-        "model": "llama3.1-8b",
-        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-        "temperature": 0.05,
-        "max_tokens": 150
-    }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {CEREBRAS_API_KEY}"}
-    )
-    with urllib.request.urlopen(req, timeout=8) as resp:
-        res = json.loads(resp.read().decode())
-        out = clean_output(res["choices"][0]["message"]["content"])
-        if not out:
-            raise ValueError("Empty output")
-        return out, "Cerebras:Llama-3.1-8b"
-
+# --- Primary Engine (Groq) & Fallback Engine (Gemini) ---
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     effective_key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not effective_key:
-        raise ValueError("Groq unconfigured")
+        raise ValueError("Groq key unconfigured")
     client = Groq(api_key=effective_key, timeout=8.0)
     for model_name in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
         try:
@@ -287,34 +336,14 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
                 return out, f"Groq:{model_name}"
         except Exception:
             continue
-    raise ValueError("Groq exhausted")
+    raise ValueError("Groq models exhausted")
 
-def _sync_openrouter_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OpenRouter unconfigured")
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    payload = {
-        "model": "meta-llama/llama-3.3-70b-instruct:free",
-        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-        "temperature": 0.05,
-        "max_tokens": 150
-    }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {OPENROUTER_API_KEY}"}
-    )
-    with urllib.request.urlopen(req, timeout=9) as resp:
-        res = json.loads(resp.read().decode())
-        out = clean_output(res["choices"][0]["message"]["content"])
-        if not out:
-            raise ValueError("Empty output")
-        return out, "OpenRouter:Llama-3.3-70b-Free"
-
-def _sync_gemini_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
-    if not GEMINI_API_KEY:
-        raise ValueError("Gemini unconfigured")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+def _sync_gemini_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    effective_key = custom_key if (custom_key and custom_key.startswith("AIza")) else GEMINI_API_KEY
+    if not effective_key:
+        raise ValueError("Gemini key unconfigured")
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={effective_key}"
     payload = {
         "contents": [{"parts": [{"text": f"{sys_prompt}\n\n{usr_prompt}"}]}],
         "generationConfig": {"temperature": 0.05, "maxOutputTokens": 150}
@@ -324,7 +353,7 @@ def _sync_gemini_call(sys_prompt: str, usr_prompt: str) -> Tuple[str, str]:
         res = json.loads(response.read().decode())
         out = clean_output(res["candidates"][0]["content"]["parts"][0]["text"])
         if not out:
-            raise ValueError("Empty output")
+            raise ValueError("Empty output from Gemini")
         return out, "Google:Gemini-1.5-Flash"
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
@@ -366,98 +395,150 @@ def serve_docs():
 
 @app.get("/api/v1/health")
 def health_metrics():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
-    u_count, total_exec = cur.fetchone()
-    cur.execute("SELECT COUNT(*) FROM usage_logs")
-    log_count = cur.fetchone()[0]
-    conn.close()
+    with DBConn() as db:
+        cur = db.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
+        u_row = cur.fetchone()
+        u_count = u_row[0] if u_row else 0
+        total_exec = u_row[1] if (u_row and u_row[1]) else 0
+
+        cur_logs = db.execute("SELECT COUNT(*) FROM usage_logs")
+        log_row = cur_logs.fetchone()
+        log_count = log_row[0] if log_row else 0
+
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "16.0.0",
-        "active_keys": u_count or 0,
-        "total_cells_processed": total_exec or 0,
-        "logged_events": log_count or 0,
-        "cache_entries": len(MEMORY_CACHE)
+        "version": "18.0.0",
+        "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
+        "active_keys": u_count,
+        "total_cells_processed": total_exec,
+        "logged_events": log_count,
+        "cluster_providers": {
+            "groq": bool(GROQ_API_KEY),
+            "gemini": bool(GEMINI_API_KEY)
+        }
     }
 
-# --- COMPLETE TELEMETRY DASHBOARD ---
+# --- REAL-TIME TELEMETRY DASHBOARD ---
 @app.get("/api/v1/dashboard/stats")
 def get_user_dashboard(api_key: str):
     sanitized_key = (api_key or "").strip()
     if not sanitized_key:
         raise HTTPException(status_code=400, detail="API Key parameter required")
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
-    key_row = cur.fetchone()
-
-    if not key_row and is_byok_key(sanitized_key):
-        byok_provider = "Groq BYOK" if sanitized_key.startswith("gsk_") else "BYOK Provider"
-        cur.execute(
-            "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
-            (sanitized_key, byok_provider, time.time())
-        )
-        conn.commit()
-        cur.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
+    with DBConn() as db:
+        cur = db.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
         key_row = cur.fetchone()
 
-    if not key_row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="API Key not found in cluster.")
+        if not key_row and is_byok_key(sanitized_key):
+            provider_tag = "Groq BYOK" if sanitized_key.startswith("gsk_") else "Gemini BYOK"
+            db.execute(
+                "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, 0, ?)",
+                (sanitized_key, provider_tag, time.time())
+            )
+            cur = db.execute("SELECT owner_name, tier, credits_left, total_used, created_at FROM api_keys WHERE key = ?", (sanitized_key,))
+            key_row = cur.fetchone()
 
-    cur.execute(
-        "SELECT action, provider, latency, timestamp FROM usage_logs WHERE key = ? ORDER BY id DESC LIMIT 15",
-        (sanitized_key,)
-    )
-    recent_logs = [dict(r) for r in cur.fetchall()]
+        if not key_row:
+            raise HTTPException(status_code=404, detail="API Key not found in cluster.")
 
-    cur.execute("SELECT COUNT(*), AVG(latency) FROM usage_logs WHERE key = ?", (sanitized_key,))
-    log_count, avg_lat = cur.fetchone()
-    avg_lat = avg_lat or 0.22
+        owner_name, tier, credits_left, total_used, created_at = key_row[0], key_row[1], key_row[2], key_row[3], key_row[4]
 
-    # Accurate Total Cells Count from usage logs or db
-    actual_total_used = max(key_row["total_used"], log_count or 0)
+        cur_logs = db.execute(
+            "SELECT action, provider, latency, timestamp FROM usage_logs WHERE key = ? ORDER BY id DESC LIMIT 15",
+            (sanitized_key,)
+        )
+        recent_logs = [{"action": r[0], "provider": r[1], "latency": r[2], "timestamp": r[3]} for r in cur_logs.fetchall()]
 
-    conn.close()
+        cur_avg = db.execute("SELECT COUNT(*), AVG(latency) FROM usage_logs WHERE key = ?", (sanitized_key,))
+        avg_row = cur_avg.fetchone()
+        log_count = avg_row[0] if avg_row else 0
+        avg_lat = (avg_row[1] if (avg_row and avg_row[1]) else 0.22)
 
-    is_unlimited = key_row["tier"] == "byok"
-    used_percentage = 0 if is_unlimited else min(100, round((actual_total_used / max(1, actual_total_used + key_row["credits_left"])) * 100))
+        actual_total = max(total_used, log_count)
+
+    is_unlimited = (tier == "byok")
+    used_pct = 0 if is_unlimited else min(100, round((actual_total / max(1, actual_total + credits_left)) * 100))
 
     return {
         "success": True,
-        "owner": key_row["owner_name"],
-        "tier": "UNLIMITED BYOK" if is_unlimited else key_row["tier"].upper(),
-        "credits_left": "Unlimited (BYOK)" if is_unlimited else key_row["credits_left"],
-        "total_used": actual_total_used,
-        "used_percentage": used_percentage,
+        "owner": owner_name,
+        "tier": "UNLIMITED BYOK" if is_unlimited else tier.upper(),
+        "credits_left": "Unlimited (BYOK)" if is_unlimited else credits_left,
+        "total_used": actual_total,
+        "used_percentage": used_pct,
         "avg_latency": f"{avg_lat:.2f}s",
-        "created_at": time.strftime("%d %b %Y", time.localtime(key_row["created_at"])),
+        "created_at": time.strftime("%d %b %Y", time.localtime(created_at)),
         "recent_logs": recent_logs
+    }
+
+# --- RAZORPAY PAYMENT ENDPOINTS ---
+@app.post("/api/v1/payments/create-order")
+def create_payment_order(req: CreateOrderRequest):
+    amount_in_paise = 99900 if req.tier == "pro" else 249900
+    generated_order_id = f"order_{uuid.uuid4().hex[:14]}"
+    
+    with DBConn() as db:
+        db.execute(
+            "INSERT INTO orders (order_id, owner_name, email, tier, amount, status, created_at) VALUES (?, ?, ?, ?, ?, 'created', ?)",
+            (generated_order_id, req.owner_name.strip(), req.email.strip(), req.tier, amount_in_paise, time.time())
+        )
+
+    return {
+        "success": True,
+        "order_id": generated_order_id,
+        "amount": amount_in_paise,
+        "currency": "INR",
+        "key_id": RAZORPAY_KEY_ID,
+        "tier": req.tier,
+        "name": req.owner_name,
+        "email": req.email
+    }
+
+@app.post("/api/v1/payments/verify-payment")
+def verify_payment(req: VerifyPaymentRequest):
+    if RAZORPAY_KEY_SECRET != "demo_secret_key":
+        generated_signature = hmac.new(
+            RAZORPAY_KEY_SECRET.encode('utf-8'),
+            f"{req.razorpay_order_id}|{req.razorpay_payment_id}".encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(generated_signature, req.razorpay_signature):
+            raise HTTPException(status_code=400, detail="Invalid Payment Signature")
+
+    new_key = f"sp_{uuid.uuid4().hex[:18]}"
+    credits_allotted = 5000 if req.tier == "pro" else 30000
+
+    with DBConn() as db:
+        db.execute(
+            "UPDATE orders SET payment_id = ?, status = 'paid' WHERE order_id = ?",
+            (req.razorpay_payment_id, req.razorpay_order_id)
+        )
+        db.execute(
+            "INSERT INTO api_keys VALUES (?, ?, ?, ?, 0, ?)",
+            (new_key, req.owner_name.strip(), req.tier, credits_allotted, time.time())
+        )
+
+    return {
+        "success": True,
+        "api_key": new_key,
+        "owner": req.owner_name,
+        "credits": credits_allotted,
+        "tier": req.tier.upper(),
+        "payment_id": req.razorpay_payment_id
     }
 
 @app.post("/api/v1/keys/new")
 def create_free_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
     initial_credits = 100 if req.tier == "free" else 5000
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO api_keys VALUES (?, ?, ?, ?, 0, ?)", 
-        (new_key, req.owner_name.strip(), req.tier, initial_credits, time.time())
-    )
-    conn.commit()
-    conn.close()
-    return {
-        "success": True,
-        "api_key": new_key,
-        "owner": req.owner_name,
-        "credits": initial_credits,
-        "tier": req.tier
-    }
+    with DBConn() as db:
+        db.execute(
+            "INSERT INTO api_keys VALUES (?, ?, ?, ?, 0, ?)", 
+            (new_key, req.owner_name.strip(), req.tier, initial_credits, time.time())
+        )
+    return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
 # --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
@@ -467,10 +548,10 @@ async def process_cell(req: ProcessRequest):
     if not text_content:
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    # 1. Quota & Auth Check FIRST (Ensures counter increments for EVERY request)
+    # 1. Quota & Auth Check
     verify_and_deduct_credits(req.api_key or "", amount=1)
 
-    # 2. Regex Fast Extractor
+    # 2. Regex Fast Extractor Bypass
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(text_content, req.instruction)
         if fast_match:
@@ -478,7 +559,7 @@ async def process_cell(req: ProcessRequest):
             log_request_event(req.api_key or "anonymous", "extract", "Regex:UltraFast", elapsed, len(text_content))
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 3. In-Memory Cache
+    # 3. Cache Lookup
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{text_content}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         elapsed = round(time.time() - start_time, 3)
@@ -495,25 +576,15 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        if req.api_key and req.api_key.startswith("gsk_"):
+        # Primary: Groq
+        try:
+            result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
+        except Exception:
+            # Fallback: Gemini
             try:
-                result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt, req.api_key)
+                result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt, req.api_key)
             except Exception as ge:
-                raise HTTPException(status_code=400, detail=f"Groq API Error: {str(ge)}")
-        else:
-            try:
-                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt)
-            except Exception:
-                try:
-                    result, provider = await asyncio.to_thread(_sync_groq_call, sys_prompt, usr_prompt)
-                except Exception:
-                    try:
-                        result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt)
-                    except Exception:
-                        try:
-                            result, provider = await asyncio.to_thread(_sync_gemini_call, sys_prompt, usr_prompt)
-                        except Exception as e:
-                            raise HTTPException(status_code=503, detail=f"Inference cluster busy: {str(e)}")
+                raise HTTPException(status_code=503, detail=f"Inference engines busy: {str(ge)}")
 
         if len(MEMORY_CACHE) >= MAX_CACHE_ENTRIES:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

@@ -24,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="26.0.0",
+    version="27.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -332,13 +332,13 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= 3 HARDENED AI ENGINE ADAPTERS =================
+# ================= 3 VERIFIED ACTIVE REST ENGINES =================
 
-# 1. Cerebras Hardware Cloud
+# 1. Cerebras (Active models: llama3.1-8b, llama-3.3-70b)
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
-        raise ValueError("Cerebras API key not set in environment")
+        raise ValueError("Cerebras API key not set")
     
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {
@@ -346,7 +346,7 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
         "Content-Type": "application/json"
     }
     last_err = ""
-    for model in ["llama3.1-8b", "llama-3.3-70b", "llama3.1-70b"]:
+    for model in ["llama3.1-8b", "llama-3.3-70b"]:
         try:
             payload = {
                 "model": model,
@@ -364,13 +364,13 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
                 last_err = f"HTTP {resp.status_code}: {resp.text}"
         except Exception as e:
             last_err = str(e)
-    raise ValueError(f"Cerebras execution failed -> {last_err}")
+    raise ValueError(f"Cerebras failed -> {last_err}")
 
-# 2. Groq Hardware Cloud
+# 2. Groq (Active models: llama-3.3-70b-versatile, llama-3.1-8b-instant, llama-3.2-3b-preview)
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not key:
-        raise ValueError("Groq API key not set in environment")
+        raise ValueError("Groq API key not set")
     
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -378,7 +378,7 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
         "Content-Type": "application/json"
     }
     last_err = ""
-    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]:
+    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.2-3b-preview"]:
         try:
             payload = {
                 "model": model,
@@ -396,13 +396,13 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
                 last_err = f"HTTP {resp.status_code}: {resp.text}"
         except Exception as e:
             last_err = str(e)
-    raise ValueError(f"Groq execution failed -> {last_err}")
+    raise ValueError(f"Groq failed -> {last_err}")
 
-# 3. OpenRouter Cloud Pool
+# 3. OpenRouter (Active models: llama-3.3-70b, gemini-2.0-flash, qwen-2.5-72b)
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
-        raise ValueError("OpenRouter API key not set in environment")
+        raise ValueError("OpenRouter API key not set")
     
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -430,7 +430,7 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                 last_err = f"HTTP {resp.status_code}: {resp.text}"
         except Exception as e:
             last_err = str(e)
-    raise ValueError(f"OpenRouter execution failed -> {last_err}")
+    raise ValueError(f"OpenRouter failed -> {last_err}")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -484,7 +484,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "26.0.0",
+        "version": "27.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -496,7 +496,7 @@ def health_metrics():
         }
     }
 
-# --- ISOLATED RAW DIAGNOSTIC ENDPOINT ---
+# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT ---
 @app.get("/api/v1/debug/providers")
 def debug_individual_providers():
     test_sys = "Output ONLY the word 'OK'."
@@ -699,7 +699,7 @@ async def process_cell(req: ProcessRequest):
             except Exception:
                 pass
 
-        # Action-Based Dynamic Routing
+        # Action-Based Dynamic Routing across Cerebras, Groq, OpenRouter
         if not result:
             act = req.action.lower()
             if act in ["clean", "extract"]:

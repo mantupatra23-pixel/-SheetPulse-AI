@@ -24,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="29.0.0",
+    version="30.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -332,60 +332,25 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= DYNAMIC MODEL DISCOVERY =================
-
-def fetch_live_provider_models(provider: str, api_key: str) -> List[str]:
-    if provider == "groq":
-        try:
-            r = requests.get(
-                "https://api.groq.com/openai/v1/models",
-                headers={"Authorization": f"Bearer {api_key}"},
-                timeout=5
-            )
-            if r.status_code == 200:
-                data = r.json().get("data", [])
-                models = [m["id"] for m in data if "whisper" not in m["id"] and "guard" not in m["id"]]
-                if models:
-                    return models
-        except Exception:
-            pass
-        return ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-
-    if provider == "cerebras":
-        try:
-            r = requests.get(
-                "https://api.cerebras.ai/v1/models",
-                headers={"Authorization": f"Bearer {api_key}"},
-                timeout=5
-            )
-            if r.status_code == 200:
-                data = r.json().get("data", [])
-                models = [m["id"] for m in data]
-                if models:
-                    return models
-        except Exception:
-            pass
-        return ["llama3.1-8b", "llama-3.3-70b"]
-
-    return []
-
 # ================= 3 ULTRA-RESILIENT AI CALLERS =================
 
-# 1. Cerebras Caller
+# 1. Cerebras Caller (Active: llama3.1-8b, llama-3.3-70b)
 def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY
     if not key:
         raise ValueError("Cerebras key not configured")
     
-    models = fetch_live_provider_models("cerebras", key)
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     
-    for model in models:
+    for model in ["llama3.1-8b", "llama-3.3-70b"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -397,23 +362,25 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
                     return out, f"Cerebras:{model}"
         except Exception:
             continue
-    raise ValueError("Cerebras cluster busy")
+    raise ValueError("Cerebras inference failed")
 
-# 2. Groq Caller
+# 2. Groq Caller (Active: llama-3.3-70b-versatile, llama-3.1-8b-instant)
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY
     if not key:
         raise ValueError("Groq key not configured")
     
-    models = fetch_live_provider_models("groq", key)
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     
-    for model in models:
+    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -425,9 +392,9 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
                     return out, f"Groq:{model}"
         except Exception:
             continue
-    raise ValueError("Groq cluster busy")
+    raise ValueError("Groq inference failed")
 
-# 3. OpenRouter Caller
+# 3. OpenRouter Caller (Active: qwen-2.5-72b, llama-3.3-70b)
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY
     if not key:
@@ -440,12 +407,14 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
         "HTTP-Referer": "https://sheetpulseai.onrender.com",
         "X-Title": "SheetPulse AI"
     }
-    models = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free"]
-    for model in models:
+    for model in ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free"]:
         try:
             payload = {
                 "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "messages": [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": usr_prompt}
+                ],
                 "temperature": 0.05,
                 "max_tokens": 150
             }
@@ -457,7 +426,7 @@ def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional
                     return out, f"OpenRouter:{model.split('/')[-1]}"
         except Exception:
             continue
-    raise ValueError("OpenRouter cluster busy")
+    raise ValueError("OpenRouter inference failed")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -511,7 +480,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "29.0.0",
+        "version": "30.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -530,21 +499,21 @@ def debug_individual_providers():
     test_usr = "Status check."
     results = {}
 
-    # Test Cerebras
+    # 1. Test Cerebras
     try:
         out, prov = _sync_cerebras_call(test_sys, test_usr)
         results["cerebras"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["cerebras"] = {"status": "failed", "error": str(e)}
 
-    # Test Groq
+    # 2. Test Groq
     try:
         out, prov = _sync_groq_call(test_sys, test_usr)
         results["groq"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["groq"] = {"status": "failed", "error": str(e)}
 
-    # Test OpenRouter
+    # 3. Test OpenRouter
     try:
         out, prov = _sync_openrouter_call(test_sys, test_usr)
         results["openrouter"] = {"status": "success", "provider": prov, "output": out}
@@ -726,7 +695,7 @@ async def process_cell(req: ProcessRequest):
             except Exception:
                 pass
 
-        # Action-Based Dynamic Routing
+        # Action-Based Dynamic Routing across Cerebras, Groq, OpenRouter
         if not result:
             act = req.action.lower()
             if act in ["clean", "extract"]:

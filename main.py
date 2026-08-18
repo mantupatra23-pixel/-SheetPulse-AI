@@ -9,11 +9,12 @@ import json
 import uuid
 from typing import List, Optional, Dict
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 
-app = FastAPI(title="SheetPulse AI Triple-Engine SaaS", version="5.0.0")
+app = FastAPI(title="SheetPulse AI Enterprise", version="6.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -92,6 +93,21 @@ def try_fast_regex_extract(text: str, target: str) -> Optional[str]:
                 return match.group(0).strip()
     return None
 
+def fetch_url_text(url: str) -> str:
+    try:
+        req = urllib.request.Request(
+            url, 
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+            text = re.sub(r'<script.*?</script>|<style.*?</style>', '', html, flags=re.DOTALL)
+            text = re.sub(r'<[^>]+>', ' ', text)
+            clean_text = ' '.join(text.split())
+            return clean_text[:2500]
+    except Exception as e:
+        return f"Failed to load URL content: {e}"
+
 def clean_output(text: str) -> str:
     if not text:
         return ""
@@ -117,35 +133,26 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest]
     api_key: Optional[str] = "sp_demo_live"
 
-# --- PROVIDER 1: Cerebras (Ultra-Fast 1800 Tok/s) ---
+# --- Provider Execution Engines ---
 def call_cerebras_engine(sys_prompt: str, usr_prompt: str):
     if not CEREBRAS_API_KEY:
         raise Exception("CEREBRAS_API_KEY missing")
-    
     url = "https://api.cerebras.ai/v1/chat/completions"
     payload = {
         "model": "llama3.1-8b",
-        "messages": [
-            {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": usr_prompt}
-        ],
+        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
         "temperature": 0.1,
         "max_tokens": 250
     }
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {CEREBRAS_API_KEY}"
-        }
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {CEREBRAS_API_KEY}"}
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         res = json.loads(resp.read().decode())
-        raw = res["choices"][0]["message"]["content"]
-        return clean_output(raw), "Cerebras:Llama-3.1-8b"
+        return clean_output(res["choices"][0]["message"]["content"]), "Cerebras:Llama-3.1-8b"
 
-# --- PROVIDER 2: Groq Engine ---
 def call_groq_engine(sys_prompt: str, usr_prompt: str):
     if not GROQ_API_KEY:
         raise Exception("GROQ_API_KEY missing")
@@ -166,20 +173,15 @@ def call_groq_engine(sys_prompt: str, usr_prompt: str):
                 return cleaned, f"Groq:{model_name}"
         except Exception:
             continue
-    raise Exception("Groq cluster busy")
+    raise Exception("Groq busy")
 
-# --- PROVIDER 3: OpenRouter (Universal Free Pool) ---
 def call_openrouter_engine(sys_prompt: str, usr_prompt: str):
     if not OPENROUTER_API_KEY:
         raise Exception("OPENROUTER_API_KEY missing")
-    
     url = "https://openrouter.ai/api/v1/chat/completions"
     payload = {
         "model": "meta-llama/llama-3.3-70b-instruct:free",
-        "messages": [
-            {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": usr_prompt}
-        ],
+        "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
         "temperature": 0.1,
         "max_tokens": 250
     }
@@ -195,23 +197,82 @@ def call_openrouter_engine(sys_prompt: str, usr_prompt: str):
     )
     with urllib.request.urlopen(req, timeout=12) as resp:
         res = json.loads(resp.read().decode())
-        raw = res["choices"][0]["message"]["content"]
-        return clean_output(raw), "OpenRouter:Llama-3.3-70b-Free"
+        return clean_output(res["choices"][0]["message"]["content"]), "OpenRouter:Llama-3.3-70b-Free"
 
-@app.get("/")
-def system_status():
-    return {
-        "status": "online",
-        "service": "SheetPulse AI Triple Engine",
-        "version": "5.0.0",
-        "providers_configured": {
-            "cerebras": bool(CEREBRAS_API_KEY),
-            "groq": bool(GROQ_API_KEY),
-            "openrouter": bool(OPENROUTER_API_KEY)
-        },
-        "cache_entries": len(MEMORY_CACHE)
-    }
+# --- Visual UI Dashboard at Root ---
+@app.get("/", response_class=HTMLResponse)
+def visual_dashboard():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
+    u_count, total_exec = cur.fetchone()
+    conn.close()
 
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>SheetPulse AI - Engine Dashboard</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-black text-gray-100 font-sans min-h-screen flex flex-col items-center justify-center p-4">
+      <div class="max-w-2xl w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-6">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
+          <div>
+            <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              ⚡ <span class="bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">SheetPulse AI</span>
+            </h1>
+            <p class="text-xs text-zinc-400 mt-0.5">Enterprise Google Sheets AI Engine v6.0</p>
+          </div>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
+            ● System Operational
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
+            <p class="text-xs text-zinc-400">Total Cells Processed</p>
+            <p class="text-xl font-bold text-emerald-400 mt-1">{total_exec or 0}</p>
+          </div>
+          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
+            <p class="text-xs text-zinc-400">Active API Keys</p>
+            <p class="text-xl font-bold text-white mt-1">{u_count or 0}</p>
+          </div>
+          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
+            <p class="text-xs text-zinc-400">Memory Cache Entries</p>
+            <p class="text-xl font-bold text-emerald-400 mt-1">{len(MEMORY_CACHE)}</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">AI Cluster Providers</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if CEREBRAS_API_KEY else 'bg-zinc-800 text-zinc-500'}">
+              ✓ Cerebras Fast Inference
+            </span>
+            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if GROQ_API_KEY else 'bg-zinc-800 text-zinc-500'}">
+              ✓ Groq LPU Cluster
+            </span>
+            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if OPENROUTER_API_KEY else 'bg-zinc-800 text-zinc-500'}">
+              ✓ OpenRouter Failover
+            </span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-zinc-900/90 rounded-lg text-xs font-mono text-zinc-300 border border-zinc-800">
+          <p class="text-emerald-400 font-bold mb-1">🔗 API Endpoints:</p>
+          <p>POST /api/v1/process &bull; Single Cell Execution</p>
+          <p>POST /api/v1/batch &bull; Parallel Bulk Matrix Processing</p>
+          <p>POST /api/v1/keys/new &bull; Generate Tenant API Key</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+# --- API KEY MANAGEMENT ---
 @app.post("/api/v1/keys/new")
 def create_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -234,16 +295,19 @@ def check_balance(api_key: str):
         raise HTTPException(status_code=404, detail="API Key not found")
     return dict(row)
 
+# --- PROCESS CELL ROUTE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     if not req.text or not req.text.strip():
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
+    # 1. Direct Regex Extraction
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(req.text, req.instruction)
         if fast_match:
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
+    # 2. In-Memory Cache
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{req.text}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         return {"success": True, "result": MEMORY_CACHE[cache_key]["result"], "provider": MEMORY_CACHE[cache_key]["provider"], "cached": True}
@@ -251,40 +315,47 @@ async def process_cell(req: ProcessRequest):
     verify_and_deduct_credits(req.api_key or "sp_demo_live", amount=1)
 
     act = req.action.lower()
-    if act == "clean":
+    text_content = req.text
+
+    # Web URL Scraping Action
+    if act == "scrape":
+        scraped_data = fetch_url_text(req.text.strip())
+        sys = "You are a web intelligence parser. Analyze page content and extract the specific requested answer directly."
+        usr = f"Target Question/Extraction: {req.instruction}\nWeb Page Content:\n{scraped_data}"
+    elif act == "clean":
         sys = "Standardize formatting, fix broken spacing/casing, clean text. Output ONLY cleaned result."
-        usr = f"Input: {req.text}"
+        usr = f"Input: {text_content}"
     elif act == "extract":
         sys = "Extract the exact requested entity. Output ONLY the extracted text."
-        usr = f"Target: {req.instruction}\nText: {req.text}"
+        usr = f"Target: {req.instruction}\nText: {text_content}"
     elif act == "classify":
         sys = f"Classify input strictly into ONE tag from: [{req.instruction}]. Output ONLY the exact tag name."
-        usr = f"Input: {req.text}"
-    elif act == "translate":
-        sys = f"Translate input accurately to: {req.instruction}. Output ONLY the translation."
-        usr = f"Input: {req.text}"
+        usr = f"Input: {text_content}"
+    elif act == "fix_formula":
+        sys = "Analyze the broken spreadsheet formula and fix it. Output ONLY the corrected working formula starting with '='."
+        usr = f"Broken Formula: {text_content}\nGoal / Context: {req.instruction}"
+    elif act == "list":
+        sys = "Output a comma-separated list of items based on request. Output ONLY values separated by comma."
+        usr = f"Topic/Context: {text_content}\nInstruction: {req.instruction}"
     elif act == "formula":
         sys = "Generate a valid Google Sheets formula starting with '='. Output ONLY the formula."
-        usr = f"Requirement: {req.instruction}\nContext: {req.text}"
+        usr = f"Requirement: {req.instruction}\nContext: {text_content}"
     else:
-        sys = "Execute the instruction directly. Output ONLY the final answer."
-        usr = f"Instruction: {req.instruction}\nContext: {req.text}"
+        sys = "Execute the instruction directly. Output ONLY the final direct answer."
+        usr = f"Instruction: {req.instruction}\nContext: {text_content}"
 
     async with CONCURRENCY_LIMIT:
         result, provider = None, None
-        # Tier 1: Cerebras
         try:
             result, provider = call_cerebras_engine(sys, usr)
         except Exception:
-            # Tier 2: Groq
             try:
                 result, provider = call_groq_engine(sys, usr)
             except Exception:
-                # Tier 3: OpenRouter
                 try:
                     result, provider = call_openrouter_engine(sys, usr)
                 except Exception as e:
-                    raise HTTPException(status_code=500, detail=f"All 3 AI clusters exhausted: {e}")
+                    raise HTTPException(status_code=500, detail=f"All clusters failed: {e}")
 
         if len(MEMORY_CACHE) >= 2000:
             MEMORY_CACHE.pop(next(iter(MEMORY_CACHE)))

@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 
-app = FastAPI(title="SheetPulse AI Enterprise", version="6.0.0")
+app = FastAPI(title="SheetPulse AI Full-Stack", version="7.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +29,7 @@ CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DB_PATH = "sheetpulse.db"
 
-# --- SQLite Database ---
+# --- SQLite Database Setup ---
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -97,16 +97,15 @@ def fetch_url_text(url: str) -> str:
     try:
         req = urllib.request.Request(
             url, 
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            headers={"User-Agent": "Mozilla/5.0"}
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             html = resp.read().decode('utf-8', errors='ignore')
             text = re.sub(r'<script.*?</script>|<style.*?</style>', '', html, flags=re.DOTALL)
             text = re.sub(r'<[^>]+>', ' ', text)
-            clean_text = ' '.join(text.split())
-            return clean_text[:2500]
+            return ' '.join(text.split())[:2500]
     except Exception as e:
-        return f"Failed to load URL content: {e}"
+        return f"Failed to load URL: {e}"
 
 def clean_output(text: str) -> str:
     if not text:
@@ -199,9 +198,9 @@ def call_openrouter_engine(sys_prompt: str, usr_prompt: str):
         res = json.loads(resp.read().decode())
         return clean_output(res["choices"][0]["message"]["content"]), "OpenRouter:Llama-3.3-70b-Free"
 
-# --- Visual UI Dashboard at Root ---
+# --- FULL PAGE PRODUCTION FRONTEND ROUTE ---
 @app.get("/", response_class=HTMLResponse)
-def visual_dashboard():
+def serve_frontend():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*), SUM(total_used) FROM api_keys")
@@ -214,65 +213,299 @@ def visual_dashboard():
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>SheetPulse AI - Engine Dashboard</title>
+      <title>SheetPulse AI - Intelligent Spreadsheets</title>
       <script src="https://cdn.tailwindcss.com"></script>
+      <style>
+        .glow-border {{
+          box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+        }}
+      </style>
     </head>
-    <body class="bg-black text-gray-100 font-sans min-h-screen flex flex-col items-center justify-center p-4">
-      <div class="max-w-2xl w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-6">
-        <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div>
-            <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              ⚡ <span class="bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">SheetPulse AI</span>
-            </h1>
-            <p class="text-xs text-zinc-400 mt-0.5">Enterprise Google Sheets AI Engine v6.0</p>
+    <body class="bg-black text-zinc-100 font-sans min-h-screen w-full flex flex-col items-center selection:bg-emerald-500 selection:text-black">
+      
+      <!-- Top Navbar -->
+      <header class="w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-black shadow-inner">
+            ⚡
           </div>
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
-            ● System Operational
+          <div>
+            <h1 class="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+              SheetPulse <span class="bg-gradient-to-r from-emerald-400 to-green-500 bg-clip-text text-transparent">AI</span>
+            </h1>
+            <p class="text-[10px] text-zinc-400 tracking-wider uppercase font-mono">Enterprise Engine v7.0</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Operational
           </span>
         </div>
+      </header>
 
-        <div class="grid grid-cols-3 gap-3">
-          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
-            <p class="text-xs text-zinc-400">Total Cells Processed</p>
-            <p class="text-xl font-bold text-emerald-400 mt-1">{total_exec or 0}</p>
+      <!-- Main Full-Page Content Container -->
+      <main class="w-full max-w-6xl px-4 py-8 space-y-10 flex-1">
+        
+        <!-- Hero Section -->
+        <section class="text-center space-y-4 pt-4 pb-2">
+          <h2 class="text-3xl md:text-5xl font-black text-white tracking-tight max-w-3xl mx-auto leading-tight">
+            Turn Any Google Sheet Into An <span class="bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 bg-clip-text text-transparent">Autonomous AI Powerhouse</span>
+          </h2>
+          <p class="text-zinc-400 text-sm md:text-base max-w-2xl mx-auto">
+            Extract entities, clean unstructured text, classify customer feedback, and generate complex formulas instantly with sub-second AI latency.
+          </p>
+          <div class="flex items-center justify-center gap-4 text-xs font-mono text-zinc-400 pt-2">
+            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> {total_exec or 0} Cells Processed</span>
+            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> {u_count or 0} Active Keys</span>
+            <span class="flex items-center gap-1"><span class="text-emerald-400">●</span> 3 AI Clusters Connected</span>
           </div>
-          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
-            <p class="text-xs text-zinc-400">Active API Keys</p>
-            <p class="text-xl font-bold text-white mt-1">{u_count or 0}</p>
-          </div>
-          <div class="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80">
-            <p class="text-xs text-zinc-400">Memory Cache Entries</p>
-            <p class="text-xl font-bold text-emerald-400 mt-1">{len(MEMORY_CACHE)}</p>
-          </div>
-        </div>
+        </section>
 
-        <div class="space-y-2">
-          <p class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">AI Cluster Providers</p>
-          <div class="flex flex-wrap gap-2">
-            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if CEREBRAS_API_KEY else 'bg-zinc-800 text-zinc-500'}">
-              ✓ Cerebras Fast Inference
-            </span>
-            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if GROQ_API_KEY else 'bg-zinc-800 text-zinc-500'}">
-              ✓ Groq LPU Cluster
-            </span>
-            <span class="px-3 py-1 text-xs rounded-lg {'bg-emerald-900/40 text-emerald-400 border border-emerald-700' if OPENROUTER_API_KEY else 'bg-zinc-800 text-zinc-500'}">
-              ✓ OpenRouter Failover
+        <!-- Interactive Formula Playground (Live Execution) -->
+        <section class="w-full bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 md:p-8 glow-border space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-zinc-800 pb-4">
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                🧪 Live Formula Playground
+              </h3>
+              <p class="text-xs text-zinc-400">Test SheetPulse formulas directly inside the browser</p>
+            </div>
+            <span class="text-xs font-mono text-emerald-400 bg-zinc-900 px-3 py-1 rounded-lg border border-zinc-800">
+              Active Key: sp_demo_live
             </span>
           </div>
-        </div>
 
-        <div class="p-3 bg-zinc-900/90 rounded-lg text-xs font-mono text-zinc-300 border border-zinc-800">
-          <p class="text-emerald-400 font-bold mb-1">🔗 API Endpoints:</p>
-          <p>POST /api/v1/process &bull; Single Cell Execution</p>
-          <p>POST /api/v1/batch &bull; Parallel Bulk Matrix Processing</p>
-          <p>POST /api/v1/keys/new &bull; Generate Tenant API Key</p>
-        </div>
-      </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Select Action Formula</label>
+                <select id="playAction" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
+                  <option value="clean">=AI_CLEAN (Standardize casing & whitespace)</option>
+                  <option value="extract">=AI_EXTRACT (Regex & Entity Extractor)</option>
+                  <option value="classify">=AI_CLASSIFY (Sentiment / Intent Tagging)</option>
+                  <option value="fix_formula">=AI_FIX (Spreadsheet Formula Repair)</option>
+                  <option value="custom">=SHEETPULSE (Custom Prompt Formula)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Input Cell Text</label>
+                <textarea id="playText" rows="3" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="e.g.   mantu    patra   @   GMAIL . COM"></textarea>
+              </div>
+
+              <div id="instructionWrapper">
+                <label class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Target / Instruction</label>
+                <input id="playInstruction" type="text" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="e.g. clean">
+              </div>
+
+              <!-- Black & Green Mix Button -->
+              <button id="runBtn" onclick="runPlayground()" class="w-full py-3 px-6 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2">
+                <span>⚡ Execute Formula</span>
+              </button>
+            </div>
+
+            <!-- Output Display Box -->
+            <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-zinc-800/80 pb-2 mb-3">
+                  <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Computed Cell Output</span>
+                  <span id="telemetryBadge" class="text-[11px] font-mono text-zinc-500">Ready</span>
+                </div>
+                <div id="outputContainer" class="text-emerald-400 font-mono text-base font-semibold break-words min-h-[100px] flex items-center">
+                  Output will appear here...
+                </div>
+              </div>
+              <div class="pt-3 border-t border-zinc-800/80 text-[11px] text-zinc-500 flex justify-between">
+                <span id="providerUsed">Engine: Idle</span>
+                <span id="execSpeed">Latency: 0.00s</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- API Key Generator & Setup Code Vault -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Key Generator Card -->
+          <div class="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              🔑 Generate API Key
+            </h3>
+            <p class="text-xs text-zinc-400">Get your tenant API key to use in Google Sheets scripts.</p>
+            <div class="space-y-3 pt-2">
+              <input id="keyOwner" type="text" placeholder="Your Name / Business" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 font-mono">
+              <select id="keyTier" class="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500">
+                <option value="free">Free Starter (100 Credits)</option>
+                <option value="pro">Pro Developer (5,000 Credits)</option>
+              </select>
+              
+              <!-- Black & Green Mix Button -->
+              <button onclick="generateKey()" class="w-full py-2.5 px-4 rounded-xl font-bold text-sm text-emerald-300 bg-gradient-to-r from-zinc-900 to-black border border-emerald-600/50 hover:border-emerald-400 transition-all">
+                + Create Tenant Key
+              </button>
+              
+              <div id="keyResult" class="hidden p-3 bg-zinc-900 rounded-xl border border-emerald-800/40 text-xs font-mono text-emerald-400 break-all"></div>
+            </div>
+          </div>
+
+          <!-- 1-Click Apps Script Code Vault -->
+          <div class="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                📋 Apps Script Integration
+              </h3>
+              <button onclick="copyAppsScript()" class="text-xs text-emerald-400 hover:text-emerald-300 font-mono bg-zinc-900 px-3 py-1 rounded-lg border border-zinc-800">
+                Copy Code
+              </button>
+            </div>
+            <p class="text-xs text-zinc-400">Copy & paste directly into Google Sheets <code class="text-emerald-400">Extensions > Apps Script</code>.</p>
+            <pre class="bg-zinc-900 p-3 rounded-xl border border-zinc-800 text-[11px] font-mono text-zinc-300 h-40 overflow-y-auto leading-relaxed">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+
+function SHEETPULSE(text, instruction) {{
+  return callSheetPulse(text, instruction, "custom");
+}}
+
+function AI_CLEAN(text) {{
+  return callSheetPulse(text, "clean", "clean");
+}}
+
+function AI_EXTRACT(text, target) {{
+  return callSheetPulse(text, target, "extract");
+}}
+
+function AI_CLASSIFY(text, categories) {{
+  return callSheetPulse(text, categories, "classify");
+}}
+
+function AI_FIX(brokenFormula, goal) {{
+  return callSheetPulse(brokenFormula, goal, "fix_formula");
+}}
+
+function callSheetPulse(text, inst, action) {{
+  if (!text) return "";
+  const payload = {{ text: String(text), instruction: String(inst || ""), action: action, api_key: "sp_demo_live" }};
+  const res = UrlFetchApp.fetch(BACKEND_URL, {{
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  }});
+  const json = JSON.parse(res.getContentText());
+  return json.success ? json.result : "Error: " + (json.detail || "API Error");
+}}</pre>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Footer -->
+      <footer class="w-full border-t border-zinc-900 bg-zinc-950/60 py-6 text-center text-xs text-zinc-500 font-mono">
+        &copy; 2026 SheetPulse AI Engine &bull; Built for High-Performance Spreadsheet Automations
+      </footer>
+
+      <!-- Frontend JavaScript Client -->
+      <script>
+        async function runPlayground() {{
+          const btn = document.getElementById('runBtn');
+          const output = document.getElementById('outputContainer');
+          const providerBadge = document.getElementById('providerUsed');
+          const speedBadge = document.getElementById('execSpeed');
+          const telemetry = document.getElementById('telemetryBadge');
+          
+          const action = document.getElementById('playAction').value;
+          const text = document.getElementById('playText').value.trim();
+          const instruction = document.getElementById('playInstruction').value.trim();
+
+          if (!text) {{
+            output.innerHTML = '<span class="text-amber-400">Please provide some input text to process.</span>';
+            return;
+          }}
+
+          btn.disabled = true;
+          btn.innerHTML = '<span>⏳ Computing...</span>';
+          output.innerHTML = '<span class="text-zinc-500 animate-pulse">Running across AI cluster...</span>';
+          telemetry.innerText = 'Executing';
+
+          const startTime = performance.now();
+
+          try {{
+            const res = await fetch('/api/v1/process', {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify({{ text: text, instruction: instruction, action: action, api_key: 'sp_demo_live' }})
+            }});
+            const data = await res.json();
+            const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+
+            if (data.success) {{
+              output.innerHTML = '<span class="text-emerald-400">' + data.result + '</span>';
+              providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : data.provider);
+              speedBadge.innerText = 'Latency: ' + elapsed + 's';
+              telemetry.innerText = 'Success';
+            }} else {{
+              output.innerHTML = '<span class="text-red-400">Error: ' + (data.detail || 'Failed') + '</span>';
+              telemetry.innerText = 'Failed';
+            }}
+          }} catch (err) {{
+            output.innerHTML = '<span class="text-red-400">Network Error: ' + err.message + '</span>';
+          }} finally {{
+            btn.disabled = false;
+            btn.innerHTML = '<span>⚡ Execute Formula</span>';
+          }}
+        }}
+
+        async function generateKey() {{
+          const owner = document.getElementById('keyOwner').value.trim() || 'User';
+          const tier = document.getElementById('keyTier').value;
+          const box = document.getElementById('keyResult');
+          
+          box.classList.remove('hidden');
+          box.innerText = 'Generating key...';
+
+          try {{
+            const res = await fetch('/api/v1/keys/new', {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify({{ owner_name: owner, tier: tier }})
+            }});
+            const data = await res.json();
+            box.innerHTML = '✅ <strong>Your API Key:</strong><br><code class="text-white select-all">' + data.api_key + '</code><br><span class="text-zinc-400">Credits: ' + data.credits + ' | Tier: ' + data.tier + '</span>';
+          }} catch (e) {{
+            box.innerText = 'Error generating key.';
+          }}
+        }}
+
+        function copyAppsScript() {{
+          const code = `const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+
+function SHEETPULSE(text, instruction) { return callSheetPulse(text, instruction, "custom"); }
+function AI_CLEAN(text) { return callSheetPulse(text, "clean", "clean"); }
+function AI_EXTRACT(text, target) { return callSheetPulse(text, target, "extract"); }
+function AI_CLASSIFY(text, categories) { return callSheetPulse(text, categories, "classify"); }
+function AI_FIX(brokenFormula, goal) { return callSheetPulse(brokenFormula, goal, "fix_formula"); }
+
+function callSheetPulse(text, inst, action) {
+  if (!text) return "";
+  const payload = { text: String(text), instruction: String(inst || ""), action: action, api_key: "sp_demo_live" };
+  const res = UrlFetchApp.fetch(BACKEND_URL, {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const json = JSON.parse(res.getContentText());
+  return json.success ? json.result : "Error: " + (json.detail || "API Error");
+}`;
+          navigator.clipboard.writeText(code);
+          alert("Apps Script code copied to clipboard!");
+        }}
+      </script>
     </body>
     </html>
     """
 
-# --- API KEY MANAGEMENT ---
+# --- API KEY ENDPOINTS ---
 @app.post("/api/v1/keys/new")
 def create_api_key(req: KeyGenRequest):
     new_key = f"sp_{uuid.uuid4().hex[:18]}"
@@ -295,19 +528,17 @@ def check_balance(api_key: str):
         raise HTTPException(status_code=404, detail="API Key not found")
     return dict(row)
 
-# --- PROCESS CELL ROUTE ---
+# --- PROCESS CELL ENDPOINT ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     if not req.text or not req.text.strip():
         return {"success": True, "result": "", "cached": False, "provider": "None"}
 
-    # 1. Direct Regex Extraction
     if req.action == "extract" and req.instruction:
         fast_match = try_fast_regex_extract(req.text, req.instruction)
         if fast_match:
             return {"success": True, "result": fast_match, "provider": "Regex:UltraFast", "cached": False}
 
-    # 2. In-Memory Cache
     cache_key = hashlib.sha256(f"{req.action}:{req.instruction}:{req.text}".lower().encode()).hexdigest()
     if cache_key in MEMORY_CACHE:
         return {"success": True, "result": MEMORY_CACHE[cache_key]["result"], "provider": MEMORY_CACHE[cache_key]["provider"], "cached": True}
@@ -317,31 +548,27 @@ async def process_cell(req: ProcessRequest):
     act = req.action.lower()
     text_content = req.text
 
-    # Web URL Scraping Action
     if act == "scrape":
         scraped_data = fetch_url_text(req.text.strip())
-        sys = "You are a web intelligence parser. Analyze page content and extract the specific requested answer directly."
-        usr = f"Target Question/Extraction: {req.instruction}\nWeb Page Content:\n{scraped_data}"
+        sys = "Analyze the web page and extract the requested answer directly. Output ONLY the answer."
+        usr = f"Question: {req.instruction}\nContent:\n{scraped_data}"
     elif act == "clean":
-        sys = "Standardize formatting, fix broken spacing/casing, clean text. Output ONLY cleaned result."
+        sys = "Standardize formatting, fix broken spaces/casing. Output ONLY cleaned result."
         usr = f"Input: {text_content}"
     elif act == "extract":
-        sys = "Extract the exact requested entity. Output ONLY the extracted text."
+        sys = "Extract the requested entity. Output ONLY the extracted text."
         usr = f"Target: {req.instruction}\nText: {text_content}"
     elif act == "classify":
-        sys = f"Classify input strictly into ONE tag from: [{req.instruction}]. Output ONLY the exact tag name."
+        sys = f"Classify input into ONE tag from: [{req.instruction}]. Output ONLY the exact tag name."
         usr = f"Input: {text_content}"
     elif act == "fix_formula":
-        sys = "Analyze the broken spreadsheet formula and fix it. Output ONLY the corrected working formula starting with '='."
-        usr = f"Broken Formula: {text_content}\nGoal / Context: {req.instruction}"
-    elif act == "list":
-        sys = "Output a comma-separated list of items based on request. Output ONLY values separated by comma."
-        usr = f"Topic/Context: {text_content}\nInstruction: {req.instruction}"
+        sys = "Analyze broken spreadsheet formula and fix it. Output ONLY valid formula starting with '='."
+        usr = f"Broken Formula: {text_content}\nContext: {req.instruction}"
     elif act == "formula":
-        sys = "Generate a valid Google Sheets formula starting with '='. Output ONLY the formula."
+        sys = "Generate a Google Sheets formula starting with '='. Output ONLY the formula."
         usr = f"Requirement: {req.instruction}\nContext: {text_content}"
     else:
-        sys = "Execute the instruction directly. Output ONLY the final direct answer."
+        sys = "Execute the instruction directly. Output ONLY the direct final answer."
         usr = f"Instruction: {req.instruction}\nContext: {text_content}"
 
     async with CONCURRENCY_LIMIT:

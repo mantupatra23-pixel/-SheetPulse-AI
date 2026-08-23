@@ -28,12 +28,13 @@
             mono: ['"JetBrains Mono"', 'monospace'],
           },
           colors: {
-            brand: {
-              400: '#34d399',
-              500: '#10b981',
-              600: '#059669',
-              700: '#047857',
-              950: '#022c22',
+            sun: {
+              navy: '#152935',
+              blue: '#698ea2',
+              peach: '#e4a576',
+              sage: '#ccd5d2',
+              cream: '#fde5d6',
+              sand: '#f7ede2'
             }
           }
         }
@@ -42,17 +43,18 @@
   </script>
 
   <style>
-    body { background-color: #f8fafc; }
-    .soft-grid-bg {
-      background-size: 32px 32px;
-      background-image: linear-gradient(to right, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
-                        linear-gradient(to bottom, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+    body {
+      background-color: #f7ede2;
+      color: #152935;
+    }
+    .sunburn-hero-bg {
+      background: linear-gradient(180deg, #ccd5d2 0%, #ccd5d2 55%, #f7ede2 100%);
     }
     .card-shadow {
-      box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
+      box-shadow: 0 12px 30px -6px rgba(21, 41, 53, 0.08), 0 4px 6px -2px rgba(21, 41, 53, 0.04);
     }
     .hero-glow {
-      box-shadow: 0 20px 45px -10px rgba(16, 185, 129, 0.18), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 20px 45px -10px rgba(228, 165, 118, 0.35), 0 4px 10px -2px rgba(21, 41, 53, 0.08);
     }
     .toast-anim {
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -63,311 +65,316 @@
     }
   </style>
 </head>
-<body class="text-slate-900 antialiased selection:bg-brand-500 selection:text-white soft-grid-bg min-h-screen flex flex-col relative">
+<body class="text-sun-navy antialiased selection:bg-sun-peach selection:text-sun-navy min-h-screen flex flex-col relative">
 
   <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
   <div id="toastBox" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+  <!-- Top Accent Bar -->
+  <div class="w-full h-1.5 bg-sun-peach"></div>
+
   <!-- ================= TOP NAVBAR ================= -->
-  <header class="sticky top-0 z-40 w-full border-b border-slate-200/90 bg-white/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
+  <header class="sticky top-0 z-40 w-full border-b border-sun-sage/80 bg-white/95 backdrop-blur-xl px-4 md:px-8 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-950 via-emerald-950 to-black border border-emerald-500/60 flex items-center justify-center text-emerald-400 font-extrabold shadow-sm">
+      <div class="w-9 h-9 rounded-xl bg-sun-navy text-sun-peach flex items-center justify-center font-extrabold text-base shadow-sm">
         ⚡
       </div>
-      <a href="/" class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1">
-        SheetPulse<span class="text-emerald-600">AI</span>
+      <a href="/" class="text-xl font-extrabold tracking-tight text-sun-navy flex items-center gap-1">
+        SheetPulse<span class="text-sun-peach">AI</span>
       </a>
-      <span id="clusterHealthBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span id="clusterHealthText">Supabase Cluster Active</span>
+      <span id="clusterHealthBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sun-cream text-sun-navy border border-sun-peach/40">
+        <span class="w-1.5 h-1.5 rounded-full bg-sun-peach animate-pulse"></span>
+        <span id="clusterHealthText">Neural Cluster Online</span>
       </span>
     </div>
 
     <!-- Desktop Navigation Links -->
-    <nav class="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-600">
-      <a href="#templates" class="hover:text-emerald-600 transition-colors">Templates Hub</a>
-      <a href="#workflows" class="hover:text-emerald-600 transition-colors">Workflows</a>
-      <a href="#roi" class="hover:text-indigo-600 transition-colors">ROI Calculator</a>
-      <a href="#comparison" class="hover:text-emerald-600 transition-colors">Why Not ChatGPT?</a>
-      <a href="#playground" class="hover:text-indigo-600 transition-colors">Playground</a>
-      <a href="#pricing" class="hover:text-emerald-600 transition-colors">Pricing</a>
-      <a href="/docs" class="hover:text-emerald-600 transition-colors">Docs</a>
+    <nav class="hidden lg:flex items-center gap-6 text-xs font-bold text-sun-navy/80">
+      <a href="#templates" class="hover:text-sun-peach transition-colors">Templates Hub</a>
+      <a href="#workflows" class="hover:text-sun-peach transition-colors">Workflows</a>
+      <a href="#roi" class="hover:text-sun-blue transition-colors">ROI Calculator</a>
+      <a href="#comparison" class="hover:text-sun-peach transition-colors">Why Not ChatGPT?</a>
+      <a href="#playground" class="hover:text-sun-blue transition-colors">Playground</a>
+      <a href="#pricing" class="hover:text-sun-peach transition-colors">Pricing</a>
+      <a href="/docs" class="hover:text-sun-peach transition-colors">Docs</a>
     </nav>
 
     <!-- Header Actions -->
     <div class="flex items-center gap-2 sm:gap-3">
-      <button onclick="openDashboardModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 flex items-center gap-1.5 transition-all shadow-sm">
+      <button onclick="openDashboardModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-sun-navy bg-sun-sage/60 hover:bg-sun-sage border border-sun-sage flex items-center gap-1.5 transition-all shadow-sm">
         <span>📊</span> <span>Dashboard</span>
       </button>
-      <a href="#integration" class="px-4 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-sm transition-all">
+      <a href="#integration" class="px-4 py-1.5 rounded-xl text-xs font-extrabold text-white bg-sun-navy hover:bg-sun-navy/90 border border-sun-navy shadow-sm transition-all">
         Get API Key
       </a>
-      <button onclick="toggleMobileNav()" aria-label="Toggle Menu" class="lg:hidden p-2 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 hover:text-slate-900">
+      <button onclick="toggleMobileNav()" aria-label="Toggle Menu" class="lg:hidden p-2 rounded-xl bg-sun-cream border border-sun-peach/30 text-sun-navy">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
     </div>
   </header>
 
   <!-- Mobile Dropdown Navigation -->
-  <div id="mobileNavMenu" class="hidden lg:hidden bg-white border-b border-slate-200 px-6 py-4 space-y-3 text-xs font-bold text-slate-700 shadow-lg">
-    <button onclick="openDashboardModal(); toggleMobileNav();" class="block w-full text-left py-2 border-b border-slate-100 text-indigo-700 font-extrabold">📊 My Telemetry Dashboard</button>
-    <a href="#templates" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 text-emerald-700 font-extrabold">📂 1-Click Starter Templates</a>
-    <a href="#workflows" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Real Workflows</a>
-    <a href="#roi" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">ROI Calculator</a>
-    <a href="#comparison" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Why Not ChatGPT?</a>
-    <a href="#playground" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-indigo-600">Live Playground</a>
-    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-slate-100 hover:text-emerald-600">Pricing & Plans</a>
-    <a href="/docs" class="block py-2 text-indigo-700 font-extrabold">📖 Documentation Portal</a>
+  <div id="mobileNavMenu" class="hidden lg:hidden bg-white border-b border-sun-sage px-6 py-4 space-y-3 text-xs font-bold text-sun-navy shadow-lg">
+    <button onclick="openDashboardModal(); toggleMobileNav();" class="block w-full text-left py-2 border-b border-sun-sage/40 text-sun-blue font-extrabold">📊 My Telemetry Dashboard</button>
+    <a href="#templates" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 text-sun-peach font-extrabold">📂 1-Click Starter Templates</a>
+    <a href="#workflows" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 hover:text-sun-peach">Real Workflows</a>
+    <a href="#roi" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 hover:text-sun-blue">ROI Calculator</a>
+    <a href="#comparison" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 hover:text-sun-peach">Why Not ChatGPT?</a>
+    <a href="#playground" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 hover:text-sun-blue">Live Playground</a>
+    <a href="#pricing" onclick="toggleMobileNav()" class="block py-2 border-b border-sun-sage/40 hover:text-sun-peach">Pricing & Plans</a>
+    <a href="/docs" class="block py-2 text-sun-navy font-extrabold">📖 Documentation Portal</a>
   </div>
 
   <main class="w-full flex-1">
     
-    <!-- ================= 1. HERO SECTION & LIVE PREVIEW ================= -->
-    <section class="max-w-6xl mx-auto px-4 pt-12 pb-10 text-center space-y-6">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-200 shadow-sm">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-        <span class="text-emerald-700 font-extrabold">Bulk Neural Engine:</span> Google Sheets Bulk Automation
-      </div>
-
-      <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 max-w-4xl mx-auto leading-[1.12]">
-        Automate <span class="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 bg-clip-text text-transparent">10 Hours of Manual Sheet Work</span> in 30 Seconds.
-      </h1>
-
-      <p class="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
-        Don't copy-paste rows into ChatGPT one by one. Drag our formula handle down your column to auto-extract, clean, and enrich hundreds of rows simultaneously.
-      </p>
-
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-        <a href="#templates" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
-          <span>📂</span> <span>Explore 6 Ready Templates</span>
-        </a>
-        <button onclick="openDashboardModal()" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition-all flex items-center justify-center gap-2">
-          <span>📊</span> <span>Open Live Dashboard</span>
-        </button>
-      </div>
-
-      <p class="text-xs text-slate-500 font-mono">
-        ✓ 100 Initial Credits Included &bull; <span class="text-emerald-700 font-bold">Unlimited BYOK Keys Supported</span> &bull; 100% Sheets Native
-      </p>
-
-      <!-- Live Animated Drag-Down Table -->
-      <article class="pt-4 max-w-4xl mx-auto text-left">
-        <div class="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-6 hero-glow relative overflow-hidden">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 mb-3 gap-2">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-rose-400"></span>
-              <span class="w-3 h-3 rounded-full bg-amber-400"></span>
-              <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
-              <span class="ml-2 text-slate-800 font-bold text-xs sm:text-sm">B2B_Prospect_Enrichment.gsheet</span>
-            </div>
-            
-            <div class="flex items-center gap-2">
-              <span id="animStatusBadge" class="text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 font-bold text-xs flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span id="animStatusText">Dragging Formula Down...</span>
-              </span>
-              <button onclick="runDragDownAnimation()" class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200">↻ Replay</button>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200 text-xs font-mono mb-3">
-            <span class="text-emerald-600 font-extrabold text-sm">fx</span>
-            <span class="text-slate-800 font-bold">=AI_EXTRACT(A2, "CEO email address")</span>
-          </div>
-
-          <div class="overflow-x-auto relative">
-            <table class="w-full text-xs font-mono border-collapse bg-white rounded-lg overflow-hidden border border-slate-200">
-              <thead>
-                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
-                  <th class="p-2.5 w-12 text-center border-r border-slate-200">#</th>
-                  <th class="p-2.5 text-left border-r border-slate-200 w-1/2">A &bull; Raw Bio / Web Content</th>
-                  <th class="p-2.5 text-left text-emerald-800 font-bold bg-emerald-50/60">B &bull; SheetPulse AI Output</th>
-                  <th class="p-2.5 text-center w-24 text-slate-500">Status</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">2</td>
-                  <td class="p-2.5 border-r border-slate-200">Contact Alex (Founder): alex.h@finscale.io | Book call</td>
-                  <td id="cell-b2" class="p-2.5 text-emerald-700 bg-emerald-50/40 font-bold relative">
-                    alex.h@finscale.io
-                    <span id="fillHandle" class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-600 border border-white cursor-crosshair z-20"></span>
-                  </td>
-                  <td class="p-2.5 text-center text-emerald-600 font-bold">✓ Ready</td>
-                </tr>
-                <tr>
-                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">3</td>
-                  <td class="p-2.5 border-r border-slate-200">For enterprise inquiries contact ceo-office@retailpro.com</td>
-                  <td id="cell-b3" class="p-2.5 font-bold text-slate-400">--</td>
-                  <td id="status-r3" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
-                </tr>
-                <tr>
-                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">4</td>
-                  <td class="p-2.5 border-r border-slate-200">Sarah Jenkins (Chief Growth) &bull; s.jenkins@hypercloud.dev</td>
-                  <td id="cell-b4" class="p-2.5 font-bold text-slate-400">--</td>
-                  <td id="status-r4" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
-                </tr>
-                <tr>
-                  <td class="p-2.5 text-center text-slate-400 bg-slate-50">5</td>
-                  <td class="p-2.5 border-r border-slate-200">Marcus Vance &bull; VP Outbound &bull; m.vance@novab2b.tech</td>
-                  <td id="cell-b5" class="p-2.5 font-bold text-slate-400">--</td>
-                  <td id="status-r5" class="p-2.5 text-center text-slate-400 font-mono text-[11px]">-</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div id="simulatedCursor" class="absolute pointer-events-none z-30 transition-all duration-700 ease-out flex items-center gap-1 opacity-0">
-              <svg class="w-5 h-5 text-slate-900 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11.5-5.5 1.5 3.5 6.5-2.5 1.5-3.5-6.5-4 4V2z"/></svg>
-              <span class="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">Drag 3 Rows</span>
-            </div>
-          </div>
+    <!-- ================= 1. HERO SECTION (2-TONE SUNBURN BACKGROUND) ================= -->
+    <section class="sunburn-hero-bg pt-14 pb-12 px-4 text-center space-y-6">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white text-sun-navy border border-sun-sage shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-sun-peach animate-ping"></span>
+          <span class="text-sun-peach font-extrabold">Sunburn Neural Engine:</span> Google Sheets Bulk Automation
         </div>
-      </article>
+
+        <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-sun-navy max-w-4xl mx-auto leading-[1.14]">
+          Automate <span class="bg-gradient-to-r from-sun-navy via-sun-blue to-sun-peach bg-clip-text text-transparent">10 Hours of Manual Sheet Work</span> in 30 Seconds.
+        </h1>
+
+        <p class="text-sun-navy/80 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
+          Don't copy-paste rows into ChatGPT one by one. Drag our formula handle down your column to auto-extract, clean, and enrich hundreds of rows simultaneously.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <a href="#templates" class="w-full sm:w-auto px-8 py-3.5 rounded-xl font-extrabold text-sm text-white bg-sun-navy hover:bg-sun-navy/90 border border-sun-navy hover:shadow-lg transition-all flex items-center justify-center gap-2">
+            <span>📂</span> <span>Explore 6 Ready Templates</span>
+          </a>
+          <button onclick="openDashboardModal()" class="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-sun-navy bg-white border border-sun-sage hover:bg-sun-cream/50 shadow-sm transition-all flex items-center justify-center gap-2">
+            <span>📊</span> <span>Open Live Dashboard</span>
+          </button>
+        </div>
+
+        <p class="text-xs text-sun-navy/70 font-mono">
+          ✓ 100 Initial Credits Included &bull; <span class="text-sun-peach font-bold">Unlimited BYOK Keys Supported</span> &bull; 100% Sheets Native
+        </p>
+
+        <!-- Live Animated Drag-Down Table -->
+        <article class="pt-4 max-w-4xl mx-auto text-left">
+          <div class="rounded-2xl border border-sun-sage bg-white p-3 sm:p-6 hero-glow relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-sun-sage/40 pb-3 mb-3 gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-sun-peach"></span>
+                <span class="w-3 h-3 rounded-full bg-sun-blue"></span>
+                <span class="w-3 h-3 rounded-full bg-sun-navy"></span>
+                <span class="ml-2 text-sun-navy font-bold text-xs sm:text-sm">B2B_Prospect_Enrichment.gsheet</span>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <span id="animStatusBadge" class="text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40 font-bold text-xs flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-sun-peach animate-pulse"></span>
+                  <span id="animStatusText">Dragging Formula Down...</span>
+                </span>
+                <button onclick="runDragDownAnimation()" class="text-xs px-2.5 py-1 rounded-lg bg-sun-sage/40 hover:bg-sun-sage text-sun-navy font-bold border border-sun-sage">↻ Replay</button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 bg-sun-sand/80 rounded-xl px-3.5 py-2.5 border border-sun-sage/80 text-xs font-mono mb-3">
+              <span class="text-sun-peach font-extrabold text-sm">fx</span>
+              <span class="text-sun-navy font-bold">=AI_EXTRACT(A2, "CEO email address")</span>
+            </div>
+
+            <div class="overflow-x-auto relative">
+              <table class="w-full text-xs font-mono border-collapse bg-white rounded-lg overflow-hidden border border-sun-sage">
+                <thead>
+                  <tr class="bg-sun-sage/50 text-sun-navy border-b border-sun-sage">
+                    <th class="p-2.5 w-12 text-center border-r border-sun-sage">#</th>
+                    <th class="p-2.5 text-left border-r border-sun-sage w-1/2">A &bull; Raw Bio / Web Content</th>
+                    <th class="p-2.5 text-left text-sun-navy font-bold bg-sun-cream/60">B &bull; SheetPulse AI Output</th>
+                    <th class="p-2.5 text-center w-24 text-sun-navy/60">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-sun-sage/30 text-sun-navy">
+                  <tr>
+                    <td class="p-2.5 text-center text-sun-navy/40 bg-sun-sand/50">2</td>
+                    <td class="p-2.5 border-r border-sun-sage">Contact Alex (Founder): alex.h@finscale.io | Book call</td>
+                    <td id="cell-b2" class="p-2.5 text-sun-navy bg-sun-cream/40 font-bold relative">
+                      alex.h@finscale.io
+                      <span id="fillHandle" class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-sun-peach border border-white cursor-crosshair z-20"></span>
+                    </td>
+                    <td class="p-2.5 text-center text-sun-peach font-bold">✓ Ready</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 text-center text-sun-navy/40 bg-sun-sand/50">3</td>
+                    <td class="p-2.5 border-r border-sun-sage">For enterprise inquiries contact ceo-office@retailpro.com</td>
+                    <td id="cell-b3" class="p-2.5 font-bold text-sun-navy/40">--</td>
+                    <td id="status-r3" class="p-2.5 text-center text-sun-navy/40 font-mono text-[11px]">-</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 text-center text-sun-navy/40 bg-sun-sand/50">4</td>
+                    <td class="p-2.5 border-r border-sun-sage">Sarah Jenkins (Chief Growth) &bull; s.jenkins@hypercloud.dev</td>
+                    <td id="cell-b4" class="p-2.5 font-bold text-sun-navy/40">--</td>
+                    <td id="status-r4" class="p-2.5 text-center text-sun-navy/40 font-mono text-[11px]">-</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 text-center text-sun-navy/40 bg-sun-sand/50">5</td>
+                    <td class="p-2.5 border-r border-sun-sage">Marcus Vance &bull; VP Outbound &bull; m.vance@novab2b.tech</td>
+                    <td id="cell-b5" class="p-2.5 font-bold text-sun-navy/40">--</td>
+                    <td id="status-r5" class="p-2.5 text-center text-sun-navy/40 font-mono text-[11px]">-</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div id="simulatedCursor" class="absolute pointer-events-none z-30 transition-all duration-700 ease-out flex items-center gap-1 opacity-0">
+                <svg class="w-5 h-5 text-sun-navy drop-shadow-md" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2l12 11.5-5.5 1.5 3.5 6.5-2.5 1.5-3.5-6.5-4 4V2z"/></svg>
+                <span class="bg-sun-navy text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow">Drag 3 Rows</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
     <!-- ================= 2. 1-CLICK STARTER TEMPLATES HUB (6 WORKFLOWS) ================= -->
     <section id="templates" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
       <div class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200 font-mono">1-Click Templates Hub</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Pre-Built Spreadsheet Workflow Templates</h2>
-        <p class="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto font-medium">Click <strong>Inspect & Copy</strong> to view sample data or download the ready-to-run CSV structure instantly.</p>
+        <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40 font-mono">1-Click Templates Hub</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-sun-navy">Pre-Built Spreadsheet Workflow Templates</h2>
+        <p class="text-sun-navy/80 text-xs sm:text-sm max-w-xl mx-auto font-medium">Click <strong>Inspect & Copy</strong> to view sample data or download the ready-to-run CSV structure instantly.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         <!-- Template 1: B2B Lead Enrichment -->
-        <div class="p-6 rounded-3xl bg-white border border-emerald-300 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-peach/60 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">🎯</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-emerald-100 text-emerald-800 rounded-full">LEAD GEN</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-cream text-sun-navy rounded-full border border-sun-peach/30">LEAD GEN</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">B2B Lead & Email Extractor</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Auto-extract verified founder email addresses, mobile numbers, and company domains from raw bios and scraped text.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-emerald-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">B2B Lead & Email Extractor</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Auto-extract verified founder email addresses, mobile numbers, and company domains from raw bios and scraped text.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-navy font-bold">
               =AI_EXTRACT(A2, "CEO email address")
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('lead_enrichment')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 text-center transition-all">
+            <button onclick="openTemplateDetails('lead_enrichment')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-sun-navy hover:bg-sun-navy/90 text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('lead_enrichment')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('lead_enrichment')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
         </div>
 
         <!-- Template 2: E-Com Catalog Factory -->
-        <div class="p-6 rounded-3xl bg-white border border-indigo-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-blue/40 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">🛍️</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-indigo-100 text-indigo-800 rounded-full">E-COMMERCE</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-sage/50 text-sun-navy rounded-full border border-sun-sage">E-COMMERCE</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">E-Com Catalog & Title Optimizer</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Convert messy manufacturer specs into high-converting Amazon & Shopify product titles and feature bullet points.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-indigo-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">E-Com Catalog & Title Optimizer</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Convert messy manufacturer specs into high-converting Amazon & Shopify product titles and feature bullet points.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-blue font-bold">
               =SHEETPULSE(A2, "Write 80-char SEO Title")
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('ecom_catalog')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-center transition-all">
+            <button onclick="openTemplateDetails('ecom_catalog')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('ecom_catalog')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('ecom_catalog')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
         </div>
 
         <!-- Template 3: Support Feedback Classifier -->
-        <div class="p-6 rounded-3xl bg-white border border-violet-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-sage card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">🏷️</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-violet-100 text-violet-800 rounded-full">OPERATIONS</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-sand text-sun-navy rounded-full border border-sun-sage">OPERATIONS</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">Support & Feedback Classifier</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Tag thousands of Zendesk, App Store, or Trustpilot reviews into Bug, Refund, Urgent, or Feature Request automatically.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-violet-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">Support & Feedback Classifier</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Tag thousands of Zendesk, App Store, or Trustpilot reviews into Bug, Refund, Urgent, or Feature Request automatically.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-navy font-bold">
               =AI_CLASSIFY(A2, "Bug, Billing, Urgent")
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('support_classifier')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-center transition-all">
+            <button onclick="openTemplateDetails('support_classifier')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('support_classifier')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('support_classifier')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
         </div>
 
         <!-- Template 4: Address & Phone Cleaner -->
-        <div class="p-6 rounded-3xl bg-white border border-teal-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-peach/40 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">📍</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-teal-100 text-teal-800 rounded-full">DATA OPS</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-cream text-sun-navy rounded-full border border-sun-peach/30">DATA OPS</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">Address & Contact Sanitizer</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Clean broken addresses, fix state abbreviations, normalize international phone codes, and standardize corrupted rows.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-teal-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">Address & Contact Sanitizer</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Clean broken addresses, fix state abbreviations, normalize international phone codes, and standardize corrupted rows.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-peach font-bold">
               =AI_CLEAN(A2)
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('address_sanitizer')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-center transition-all">
+            <button onclick="openTemplateDetails('address_sanitizer')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('address_sanitizer')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('address_sanitizer')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
         </div>
 
         <!-- Template 5: Financial Expense Tagger -->
-        <div class="p-6 rounded-3xl bg-white border border-amber-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-sage card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">💳</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-full">FINANCE</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-sand text-sun-navy rounded-full border border-sun-sage">FINANCE</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">Bank & Expense Categorizer</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Classify messy bank statement text into QuickBooks accounting categories like Travel, Software, or Office Supplies.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-amber-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">Bank & Expense Categorizer</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Classify messy bank statement text into QuickBooks accounting categories like Travel, Software, or Office Supplies.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-blue font-bold">
               =AI_CLASSIFY(A2, "SaaS, Travel, Meals")
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('expense_categorizer')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-center transition-all">
+            <button onclick="openTemplateDetails('expense_categorizer')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('expense_categorizer')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('expense_categorizer')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
         </div>
 
         <!-- Template 6: Web Competitor Scraper -->
-        <div class="p-6 rounded-3xl bg-white border border-sky-200 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-3xl bg-white border border-sun-blue/40 card-shadow hover:shadow-md transition-all flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-2xl">🌐</span>
-              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sky-100 text-sky-800 rounded-full">RESEARCH</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-extrabold bg-sun-cream text-sun-navy rounded-full border border-sun-peach/30">RESEARCH</span>
             </div>
-            <h3 class="text-base font-extrabold text-slate-900">Live URL Competitor Scraper</h3>
-            <p class="text-xs text-slate-600 leading-relaxed font-medium">Extract pricing tiers, taglines, and feature lists from 500+ competitor website URLs directly inside your columns.</p>
-            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-[11px] text-sky-700 font-bold">
+            <h3 class="text-base font-extrabold text-sun-navy">Live URL Competitor Scraper</h3>
+            <p class="text-xs text-sun-navy/80 leading-relaxed font-medium">Extract pricing tiers, taglines, and feature lists from 500+ competitor website URLs directly inside your columns.</p>
+            <div class="bg-sun-sand p-2.5 rounded-xl border border-sun-sage font-mono text-[11px] text-sun-navy font-bold">
               =AI_SCRAPE(A2, "Extract Starting Price")
             </div>
           </div>
           <div class="flex items-center gap-2 pt-1">
-            <button onclick="openTemplateDetails('competitor_scraper')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-center transition-all">
+            <button onclick="openTemplateDetails('competitor_scraper')" class="flex-1 py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage text-center transition-all">
               Inspect & Copy ↗
             </button>
-            <button onclick="downloadCSVTemplate('competitor_scraper')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300">
+            <button onclick="downloadCSVTemplate('competitor_scraper')" title="Download CSV Template" class="px-3 py-2.5 rounded-xl bg-sun-cream hover:bg-sun-peach/40 text-sun-navy text-xs font-bold border border-sun-peach/40">
               📥 CSV
             </button>
           </div>
@@ -379,69 +386,69 @@
     <!-- ================= 3. REAL BUSINESS WORKFLOWS ================= -->
     <section id="workflows" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
       <div class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">High-ROI Use Cases</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">What Will You Automate Today?</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40">High-ROI Use Cases</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-sun-navy">What Will You Automate Today?</h2>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-5 rounded-2xl bg-white border border-emerald-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-base font-bold">🎯</span>
-          <h3 class="font-bold text-slate-900 text-sm">B2B Lead Enrichment</h3>
-          <p class="text-xs text-slate-600">Extract direct CEO emails, phone numbers, and founder names from dirty web scrapes.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-emerald-700 font-semibold">=AI_EXTRACT(A2, "CEO email")</div>
+        <div class="p-5 rounded-2xl bg-white border border-sun-peach/40 card-shadow hover:shadow-md transition-all space-y-2.5">
+          <span class="w-9 h-9 rounded-xl bg-sun-cream text-sun-navy flex items-center justify-center text-base font-bold">🎯</span>
+          <h3 class="font-bold text-sun-navy text-sm">B2B Lead Enrichment</h3>
+          <p class="text-xs text-sun-navy/75">Extract direct CEO emails, phone numbers, and founder names from dirty web scrapes.</p>
+          <div class="bg-sun-sand p-2 rounded-lg border border-sun-sage font-mono text-[11px] text-sun-peach font-bold">=AI_EXTRACT(A2, "CEO email")</div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-indigo-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base font-bold">🛍️</span>
-          <h3 class="font-bold text-slate-900 text-sm">E-Commerce Catalogs</h3>
-          <p class="text-xs text-slate-600">Generate 2,000 SEO product titles, bullet points, and translations in bulk.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-indigo-700 font-semibold">=SHEETPULSE(A2, "SEO Title")</div>
+        <div class="p-5 rounded-2xl bg-white border border-sun-blue/40 card-shadow hover:shadow-md transition-all space-y-2.5">
+          <span class="w-9 h-9 rounded-xl bg-sun-sage/50 text-sun-navy flex items-center justify-center text-base font-bold">🛍️</span>
+          <h3 class="font-bold text-sun-navy text-sm">E-Commerce Catalogs</h3>
+          <p class="text-xs text-sun-navy/75">Generate 2,000 SEO product titles, bullet points, and translations in bulk.</p>
+          <div class="bg-sun-sand p-2 rounded-lg border border-sun-sage font-mono text-[11px] text-sun-blue font-bold">=SHEETPULSE(A2, "SEO Title")</div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-violet-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-base font-bold">🏷️</span>
-          <h3 class="font-bold text-slate-900 text-sm">Feedback Classification</h3>
-          <p class="text-xs text-slate-600">Tag 10,000 Zendesk or App Store reviews into Bug, Refund, Feature Request automatically.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-violet-700 font-semibold">=AI_CLASSIFY(A2, "Bug, Refund")</div>
+        <div class="p-5 rounded-2xl bg-white border border-sun-sage card-shadow hover:shadow-md transition-all space-y-2.5">
+          <span class="w-9 h-9 rounded-xl bg-sun-sand text-sun-navy flex items-center justify-center text-base font-bold">🏷️</span>
+          <h3 class="font-bold text-sun-navy text-sm">Feedback Classification</h3>
+          <p class="text-xs text-sun-navy/75">Tag 10,000 Zendesk or App Store reviews into Bug, Refund, Feature Request automatically.</p>
+          <div class="bg-sun-sand p-2 rounded-lg border border-sun-sage font-mono text-[11px] text-sun-navy font-bold">=AI_CLASSIFY(A2, "Bug, Refund")</div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-amber-200 card-shadow hover:shadow-md transition-all space-y-2.5">
-          <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-base font-bold">🌐</span>
-          <h3 class="font-bold text-slate-900 text-sm">Competitor Scraping</h3>
-          <p class="text-xs text-slate-600">Give any competitor URL and automatically pull pricing, taglines, or product specs.</p>
-          <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 font-mono text-[11px] text-amber-700 font-semibold">=AI_SCRAPE(A2, "Extract Price")</div>
+        <div class="p-5 rounded-2xl bg-white border border-sun-peach/40 card-shadow hover:shadow-md transition-all space-y-2.5">
+          <span class="w-9 h-9 rounded-xl bg-sun-cream text-sun-navy flex items-center justify-center text-base font-bold">🌐</span>
+          <h3 class="font-bold text-sun-navy text-sm">Competitor Scraping</h3>
+          <p class="text-xs text-sun-navy/75">Give any competitor URL and automatically pull pricing, taglines, or product specs.</p>
+          <div class="bg-sun-sand p-2 rounded-lg border border-sun-sage font-mono text-[11px] text-sun-blue font-bold">=AI_SCRAPE(A2, "Extract Price")</div>
         </div>
       </div>
     </section>
 
     <!-- ================= 4. ROI CALCULATOR ================= -->
     <section id="roi" class="max-w-4xl mx-auto px-4 py-14">
-      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 card-shadow space-y-5">
+      <div class="bg-white border border-sun-sage rounded-3xl p-6 sm:p-8 card-shadow space-y-5">
         <div class="text-center space-y-1">
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">ROI Calculator</span>
-          <h2 class="text-2xl font-extrabold text-slate-900">How Much Time & Money Will You Save?</h2>
+          <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40">ROI Calculator</span>
+          <h2 class="text-2xl font-extrabold text-sun-navy">How Much Time & Money Will You Save?</h2>
         </div>
 
         <div class="space-y-3 pt-2">
-          <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+          <div class="flex items-center justify-between text-xs font-bold text-sun-navy">
             <span>Rows you process per month:</span>
-            <span id="rowCountLabel" class="text-emerald-700 font-mono text-base font-extrabold">2,500 rows</span>
+            <span id="rowCountLabel" class="text-sun-peach font-mono text-base font-extrabold">2,500 rows</span>
           </div>
-          <input type="range" id="rowSlider" min="500" max="25000" step="500" value="2500" oninput="calculateROI()" class="w-full accent-emerald-600 cursor-pointer">
+          <input type="range" id="rowSlider" min="500" max="25000" step="500" value="2500" oninput="calculateROI()" class="w-full accent-sun-peach cursor-pointer">
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <p class="text-xs text-slate-500 font-semibold">Manual Copy-Paste</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-sun-sage/40">
+          <div class="p-3.5 rounded-xl bg-sun-sand/60 border border-sun-sage text-center">
+            <p class="text-xs text-sun-navy/60 font-semibold">Manual Copy-Paste</p>
             <p id="manualTime" class="text-xl font-black text-rose-600 mt-1">21 Hours</p>
           </div>
-          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-            <p class="text-xs text-emerald-800 font-semibold">With SheetPulse AI</p>
-            <p id="sheetpulseTime" class="text-xl font-black text-emerald-700 mt-1">45 Seconds</p>
+          <div class="p-3.5 rounded-xl bg-sun-cream/60 border border-sun-peach/40 text-center">
+            <p class="text-xs text-sun-navy font-semibold">With SheetPulse AI</p>
+            <p id="sheetpulseTime" class="text-xl font-black text-sun-navy mt-1">45 Seconds</p>
           </div>
-          <div class="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-center">
-            <p class="text-xs text-indigo-800 font-semibold">Estimated Savings</p>
-            <p id="moneySaved" class="text-xl font-black text-indigo-700 mt-1">$630 / mo</p>
+          <div class="p-3.5 rounded-xl bg-sun-sage/40 border border-sun-sage text-center">
+            <p class="text-xs text-sun-navy font-semibold">Estimated Savings</p>
+            <p id="moneySaved" class="text-xl font-black text-sun-blue mt-1">$630 / mo</p>
           </div>
         </div>
       </div>
@@ -450,39 +457,39 @@
     <!-- ================= 5. HEAD-TO-HEAD COMPARISON ================= -->
     <section id="comparison" class="max-w-5xl mx-auto px-4 py-14 space-y-6">
       <div class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200">Comparison</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Why Not Use ChatGPT?</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-sage/60 px-3 py-1 rounded-full border border-sun-sage">Comparison</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-sun-navy">Why Not Use ChatGPT?</h2>
       </div>
 
-      <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden card-shadow">
+      <div class="bg-white border border-sun-sage rounded-3xl overflow-hidden card-shadow">
         <table class="w-full text-xs sm:text-sm border-collapse text-left">
           <thead>
-            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
+            <tr class="bg-sun-sage/50 border-b border-sun-sage text-sun-navy font-bold">
               <th class="p-3 sm:p-4">Feature</th>
-              <th class="p-3 sm:p-4 bg-emerald-50 text-emerald-800 font-extrabold">SheetPulse AI</th>
-              <th class="p-3 sm:p-4 text-slate-500">ChatGPT / Web AI</th>
+              <th class="p-3 sm:p-4 bg-sun-cream/60 text-sun-navy font-extrabold">SheetPulse AI</th>
+              <th class="p-3 sm:p-4 text-sun-navy/60">ChatGPT / Web AI</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 text-slate-700">
+          <tbody class="divide-y divide-sun-sage/40 text-sun-navy">
             <tr>
               <td class="p-3 sm:p-4 font-semibold">Drag-Down Formula</td>
-              <td class="p-3 sm:p-4 bg-emerald-50/50 font-bold text-emerald-700">✓ 1000s rows in 1 drag</td>
-              <td class="p-3 sm:p-4 text-slate-400">✗ Manual row-by-row</td>
+              <td class="p-3 sm:p-4 bg-sun-cream/30 font-bold text-sun-navy">✓ 1000s rows in 1 drag</td>
+              <td class="p-3 sm:p-4 text-sun-navy/40">✗ Manual row-by-row</td>
             </tr>
             <tr>
               <td class="p-3 sm:p-4 font-semibold">Native Google Sheets</td>
-              <td class="p-3 sm:p-4 bg-emerald-50/50 font-bold text-emerald-700">✓ Zero tab switching</td>
-              <td class="p-3 sm:p-4 text-slate-400">✗ Constant CSV export</td>
+              <td class="p-3 sm:p-4 bg-sun-cream/30 font-bold text-sun-navy">✓ Zero tab switching</td>
+              <td class="p-3 sm:p-4 text-sun-navy/40">✗ Constant CSV export</td>
             </tr>
             <tr>
               <td class="p-3 sm:p-4 font-semibold">Live Web Scraping</td>
-              <td class="p-3 sm:p-4 bg-emerald-50/50 font-bold text-emerald-700">✓ =AI_SCRAPE() formula</td>
-              <td class="p-3 sm:p-4 text-slate-400">✗ Blocked or complex</td>
+              <td class="p-3 sm:p-4 bg-sun-cream/30 font-bold text-sun-navy">✓ =AI_SCRAPE() formula</td>
+              <td class="p-3 sm:p-4 text-sun-navy/40">✗ Blocked or complex</td>
             </tr>
             <tr>
               <td class="p-3 sm:p-4 font-semibold">Free Forever Plan</td>
-              <td class="p-3 sm:p-4 bg-emerald-50/50 font-bold text-emerald-700">✓ Free BYOK keys</td>
-              <td class="p-3 sm:p-4 text-slate-400">✗ $20/mo per seat</td>
+              <td class="p-3 sm:p-4 bg-sun-cream/30 font-bold text-sun-navy">✓ Free BYOK keys</td>
+              <td class="p-3 sm:p-4 text-sun-navy/40">✗ $20/mo per seat</td>
             </tr>
           </tbody>
         </table>
@@ -491,24 +498,24 @@
 
     <!-- ================= 6. LIVE PLAYGROUND SANDBOX ================= -->
     <section id="playground" class="max-w-6xl mx-auto px-4 py-14">
-      <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 hero-glow space-y-6">
-        <header class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+      <div class="bg-white border border-sun-sage rounded-3xl p-6 sm:p-8 hero-glow space-y-6">
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-sun-sage/40 pb-4">
           <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-1">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sun-cream text-sun-navy border border-sun-peach/40 mb-1">
               🧪 Live Sandbox Engine
             </div>
-            <h2 class="text-2xl font-extrabold text-slate-900">Try Real Spreadsheet Formulas Now</h2>
+            <h2 class="text-2xl font-extrabold text-sun-navy">Try Real Spreadsheet Formulas Now</h2>
           </div>
-          <div class="text-left md:text-right font-mono text-xs text-slate-600">
-            <span class="text-emerald-600 font-bold">Sandbox:</span> Online & Active
+          <div class="text-left md:text-right font-mono text-xs text-sun-navy/70">
+            <span class="text-sun-peach font-bold">Sandbox:</span> Online & Active
           </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-6 space-y-3.5">
             <div>
-              <label for="playAction" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Select Formula</label>
-              <select id="playAction" onchange="updatePlaygroundTemplate()" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono font-medium">
+              <label for="playAction" class="block text-xs font-bold uppercase tracking-wider text-sun-navy mb-1">Select Formula</label>
+              <select id="playAction" onchange="updatePlaygroundTemplate()" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-sun-peach font-mono font-medium">
                 <option value="clean">=AI_CLEAN(cell) &bull; Standardize casing, spaces & dirty data</option>
                 <option value="extract">=AI_EXTRACT(cell, target) &bull; Extract emails, phones, prices</option>
                 <option value="classify">=AI_CLASSIFY(cell, tags) &bull; Tag customer feedback & sentiment</option>
@@ -519,36 +526,36 @@
             </div>
 
             <div>
-              <label for="playText" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Cell Input Data</label>
-              <textarea id="playText" rows="3" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="Input string..."></textarea>
+              <label for="playText" class="block text-xs font-bold uppercase tracking-wider text-sun-navy mb-1">Cell Input Data</label>
+              <textarea id="playText" rows="3" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:border-sun-peach font-mono" placeholder="Input string..."></textarea>
             </div>
 
             <div>
-              <label for="playInstruction" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Instruction / Target</label>
-              <input id="playInstruction" type="text" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 font-mono" placeholder="Instruction...">
+              <label for="playInstruction" class="block text-xs font-bold uppercase tracking-wider text-sun-navy mb-1">Instruction / Target</label>
+              <input id="playInstruction" type="text" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-sun-peach font-mono" placeholder="Instruction...">
             </div>
 
-            <button id="runBtn" onclick="runPlayground()" class="w-full py-3 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all flex items-center justify-center gap-2">
+            <button id="runBtn" onclick="runPlayground()" class="w-full py-3 rounded-xl font-extrabold text-xs sm:text-sm text-white bg-sun-navy hover:bg-sun-navy/90 hover:shadow-lg transition-all flex items-center justify-center gap-2">
               <span>⚡ Test in Sandbox</span>
             </button>
           </div>
 
-          <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
+          <div class="lg:col-span-6 bg-sun-sand/60 border border-sun-sage rounded-2xl p-4 sm:p-5 flex flex-col justify-between space-y-4">
             <div>
-              <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                <div class="flex items-center gap-2 text-xs font-mono text-slate-700 font-bold">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <div class="flex items-center justify-between border-b border-sun-sage/40 pb-2 mb-3">
+                <div class="flex items-center gap-2 text-xs font-mono text-sun-navy font-bold">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sun-peach"></span>
                   <span>COMPUTED CELL OUTPUT</span>
                 </div>
-                <span id="telemetryBadge" class="text-xs font-mono text-slate-500 font-bold">Ready</span>
+                <span id="telemetryBadge" class="text-xs font-mono text-sun-navy/60 font-bold">Ready</span>
               </div>
 
-              <div id="outputContainer" class="text-emerald-800 font-mono text-sm sm:text-base font-bold break-words min-h-[120px] flex items-center justify-center text-center p-4 bg-white rounded-xl border border-slate-200 shadow-inner">
+              <div id="outputContainer" class="text-sun-navy font-mono text-sm sm:text-base font-bold break-words min-h-[120px] flex items-center justify-center text-center p-4 bg-white rounded-xl border border-sun-sage shadow-inner">
                 Select a formula and click "Test in Sandbox"
               </div>
             </div>
 
-            <div class="pt-2.5 border-t border-slate-200 text-xs font-mono text-slate-600 flex items-center justify-between">
+            <div class="pt-2.5 border-t border-sun-sage/40 text-xs font-mono text-sun-navy/70 flex items-center justify-between">
               <span id="providerUsed">Engine: Ready</span>
               <span id="execSpeed">Latency: 0.00s</span>
             </div>
@@ -560,59 +567,59 @@
     <!-- ================= 7. PRICING & RAZORPAY ================= -->
     <section id="pricing" class="max-w-6xl mx-auto px-4 py-14 space-y-10">
       <header class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Live Checkout</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Simple, High-ROI Pricing</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40">Live Checkout</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-sun-navy">Simple, High-ROI Pricing</h2>
       </header>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between space-y-5 card-shadow">
+        <div class="p-6 rounded-3xl bg-white border border-sun-sage flex flex-col justify-between space-y-5 card-shadow">
           <div class="space-y-3">
-            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">FREE FOREVER</span>
-            <h3 class="text-lg font-bold text-slate-900">Starter Free</h3>
-            <div class="text-3xl font-black text-slate-900">$0 <span class="text-xs font-normal text-slate-500">/ forever</span></div>
-            <p class="text-xs text-slate-600">Get your private key with 100 free cloud credits or BYOK.</p>
-            <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
+            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-sun-sand text-sun-navy border border-sun-sage">FREE FOREVER</span>
+            <h3 class="text-lg font-bold text-sun-navy">Starter Free</h3>
+            <div class="text-3xl font-black text-sun-navy">$0 <span class="text-xs font-normal text-sun-navy/60">/ forever</span></div>
+            <p class="text-xs text-sun-navy/75">Get your private key with 100 free cloud credits or BYOK.</p>
+            <ul class="space-y-1.5 text-xs text-sun-navy pt-3 border-t border-sun-sage/40 font-medium">
               <li>✓ 100 Initial Cloud Credits</li>
               <li>✓ All custom functions included</li>
               <li>✓ Unlimited on BYOK</li>
             </ul>
           </div>
-          <a href="#integration" class="w-full py-2.5 rounded-xl font-bold text-xs text-center text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 block">Generate Free Key</a>
+          <a href="#integration" class="w-full py-2.5 rounded-xl font-bold text-xs text-center text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage block">Generate Free Key</a>
         </div>
 
-        <div class="p-6 rounded-3xl bg-white border-2 border-emerald-500 flex flex-col justify-between space-y-5 hero-glow relative">
+        <div class="p-6 rounded-3xl bg-white border-2 border-sun-peach flex flex-col justify-between space-y-5 hero-glow relative">
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">PRO PLAN</span>
-              <span class="text-[10px] font-black uppercase text-white bg-emerald-600 px-2 py-0.5 rounded-full">Most Popular</span>
+              <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-sun-cream text-sun-navy border border-sun-peach/40">PRO PLAN</span>
+              <span class="text-[10px] font-black uppercase text-white bg-sun-peach px-2 py-0.5 rounded-full">Most Popular</span>
             </div>
-            <h3 class="text-lg font-bold text-slate-900">Hosted Pro</h3>
-            <div class="text-3xl font-black text-slate-900">$12 <span class="text-xs font-normal text-slate-500">/ month (~₹999)</span></div>
-            <p class="text-xs text-slate-600">Pre-allocated high-speed private quota. Instant activation.</p>
-            <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
+            <h3 class="text-lg font-bold text-sun-navy">Hosted Pro</h3>
+            <div class="text-3xl font-black text-sun-navy">$12 <span class="text-xs font-normal text-sun-navy/60">/ month (~₹999)</span></div>
+            <p class="text-xs text-sun-navy/75">Pre-allocated high-speed private quota. Instant activation.</p>
+            <ul class="space-y-1.5 text-xs text-sun-navy pt-3 border-t border-sun-sage/40 font-medium">
               <li>✓ 5,000 cell credits / month</li>
               <li>✓ Sub-second neural hardware</li>
               <li>✓ Live URL web scraping</li>
             </ul>
           </div>
-          <button onclick="openPaymentModal('Hosted Pro', 'pro', '₹999 ($12/mo)')" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 flex items-center justify-center gap-1.5">
+          <button onclick="openPaymentModal('Hosted Pro', 'pro', '₹999 ($12/mo)')" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-sun-navy hover:bg-sun-navy/90 flex items-center justify-center gap-1.5 shadow-md">
             <span>💳 Pay with Razorpay</span>
           </button>
         </div>
 
-        <div class="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between space-y-5 card-shadow">
+        <div class="p-6 rounded-3xl bg-white border border-sun-sage flex flex-col justify-between space-y-5 card-shadow">
           <div class="space-y-3">
-            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">SCALE MATRIX</span>
-            <h3 class="text-lg font-bold text-slate-900">Agency & Business</h3>
-            <div class="text-3xl font-black text-slate-900">$29 <span class="text-xs font-normal text-slate-500">/ month (~₹2,499)</span></div>
-            <p class="text-xs text-slate-600">High-volume parallel batch matrix processing for agencies.</p>
-            <ul class="space-y-1.5 text-xs text-slate-700 pt-3 border-t border-slate-200 font-medium">
+            <span class="inline-block px-3 py-1 rounded-md text-xs font-mono font-bold bg-sun-sand text-sun-navy border border-sun-sage">SCALE MATRIX</span>
+            <h3 class="text-lg font-bold text-sun-navy">Agency & Business</h3>
+            <div class="text-3xl font-black text-sun-navy">$29 <span class="text-xs font-normal text-sun-navy/60">/ month (~₹2,499)</span></div>
+            <p class="text-xs text-sun-navy/75">High-volume parallel batch matrix processing for agencies.</p>
+            <ul class="space-y-1.5 text-xs text-sun-navy pt-3 border-t border-sun-sage/40 font-medium">
               <li>✓ 30,000 cell credits / month</li>
               <li>✓ Parallel batch matrix endpoint</li>
               <li>✓ 24/7 Priority Support</li>
             </ul>
           </div>
-          <button onclick="openPaymentModal('Agency Business', 'agency', '₹2,499 ($29/mo)')" class="w-full py-2.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300">
+          <button onclick="openPaymentModal('Agency Business', 'agency', '₹2,499 ($29/mo)')" class="w-full py-2.5 rounded-xl font-bold text-xs text-sun-navy bg-sun-sage/40 hover:bg-sun-sage border border-sun-sage">
             <span>💳 Pay with Razorpay</span>
           </button>
         </div>
@@ -622,38 +629,38 @@
     <!-- ================= 8. DYNAMIC INTEGRATION CODE VAULT ================= -->
     <section id="integration" class="max-w-6xl mx-auto px-4 py-14 space-y-6">
       <header class="text-center space-y-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">Integration</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Connect To Google Sheets</h2>
+        <span class="text-xs font-bold uppercase tracking-wider text-sun-navy bg-sun-cream px-3 py-1 rounded-full border border-sun-peach/40">Integration</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-sun-navy">Connect To Google Sheets</h2>
       </header>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 card-shadow">
-          <h3 class="text-base font-bold text-slate-900">🔑 Free API Key Generator</h3>
+        <div class="lg:col-span-5 bg-white border border-sun-sage rounded-3xl p-6 space-y-4 card-shadow">
+          <h3 class="text-base font-bold text-sun-navy">🔑 Free API Key Generator</h3>
           <div class="space-y-3">
             <div>
-              <label for="keyOwner" class="block text-xs font-bold text-slate-700 mb-1">Your Name / Workspace</label>
-              <input id="keyOwner" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2 text-xs font-mono">
+              <label for="keyOwner" class="block text-xs font-bold text-sun-navy mb-1">Your Name / Workspace</label>
+              <input id="keyOwner" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3.5 py-2 text-xs font-mono">
             </div>
 
-            <button onclick="generateFreeKey()" class="w-full py-2.5 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400">
+            <button onclick="generateFreeKey()" class="w-full py-2.5 rounded-xl font-extrabold text-xs text-white bg-sun-navy hover:bg-sun-navy/90">
               + Generate Free Key (100 Credits)
             </button>
-            <div id="keyResult" class="hidden p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-mono text-emerald-900 break-all"></div>
+            <div id="keyResult" class="hidden p-3 bg-sun-cream rounded-xl border border-sun-peach/40 text-xs font-mono text-sun-navy break-all"></div>
           </div>
         </div>
 
-        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 card-shadow">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div class="lg:col-span-7 bg-white border border-sun-sage rounded-3xl p-6 space-y-4 card-shadow">
+          <div class="flex items-center justify-between border-b border-sun-sage/40 pb-2">
             <div>
-              <h3 class="text-base font-bold text-slate-900">📋 Apps Script Client Code</h3>
-              <p id="activeKeyIndicator" class="text-[11px] text-slate-500 font-mono">Key: <span class="text-amber-600 font-bold">Waiting for Key Generation</span></p>
+              <h3 class="text-base font-bold text-sun-navy">📋 Apps Script Client Code</h3>
+              <p id="activeKeyIndicator" class="text-[11px] text-sun-navy/60 font-mono">Key: <span class="text-sun-peach font-bold">Waiting for Key Generation</span></p>
             </div>
-            <button onclick="copyAppsScript()" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 shadow-sm flex items-center gap-1">
+            <button onclick="copyAppsScript()" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white bg-sun-navy hover:bg-sun-navy/90 shadow-sm flex items-center gap-1">
               <span>Copy Code</span> 📋
             </button>
           </div>
 
-          <pre id="codeSnippetBox" class="bg-slate-900 p-4 rounded-xl border border-slate-800 text-[11px] font-mono text-emerald-400 h-56 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
+          <pre id="codeSnippetBox" class="bg-sun-navy p-4 rounded-xl border border-sun-navy text-[11px] font-mono text-sun-peach h-56 overflow-y-auto leading-relaxed select-all">const BACKEND_URL = "https://sheetpulseai.onrender.com/api/v1/process";
 const SHEETPULSE_API_KEY = "YOUR_API_KEY_HERE";
 
 function SHEETPULSE(text, instruction) { return callSheetPulse(text, instruction, "custom"); }
@@ -691,34 +698,34 @@ function callSheetPulse(text, inst, action) {
 
   <!-- ================= MODALS ================= -->
   <!-- Template Details / Inspector Modal -->
-  <div id="templateDetailsModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-      <button onclick="closeTemplateDetailsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
+  <div id="templateDetailsModal" class="fixed inset-0 z-50 bg-sun-navy/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-sun-sage rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeTemplateDetailsModal()" class="absolute top-4 right-4 text-sun-navy/50 hover:text-sun-navy text-lg font-bold">✕</button>
 
       <div class="space-y-1">
-        <span id="tmplDetailBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Template Inspector</span>
-        <h3 id="tmplDetailTitle" class="text-xl font-extrabold text-slate-900 mt-1">B2B Lead Enrichment Engine</h3>
-        <p id="tmplDetailDesc" class="text-xs text-slate-600">Sample preview table showing input, formula and sub-second output.</p>
+        <span id="tmplDetailBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sun-cream text-sun-navy border border-sun-peach/40">Template Inspector</span>
+        <h3 id="tmplDetailTitle" class="text-xl font-extrabold text-sun-navy mt-1">B2B Lead Enrichment Engine</h3>
+        <p id="tmplDetailDesc" class="text-xs text-sun-navy/75">Sample preview table showing input, formula and sub-second output.</p>
       </div>
 
-      <div class="overflow-x-auto rounded-xl border border-slate-200">
+      <div class="overflow-x-auto rounded-xl border border-sun-sage">
         <table class="w-full text-xs font-mono text-left">
-          <thead class="bg-slate-100 text-slate-700 border-b border-slate-200">
+          <thead class="bg-sun-sage/40 text-sun-navy border-b border-sun-sage">
             <tr>
               <th class="p-2.5 w-12">#</th>
               <th id="tmplColA" class="p-2.5">Input Text (Column A)</th>
-              <th id="tmplColB" class="p-2.5 text-emerald-700 font-bold">SheetPulse Formula (Column B)</th>
+              <th id="tmplColB" class="p-2.5 text-sun-blue font-bold">SheetPulse Formula (Column B)</th>
             </tr>
           </thead>
-          <tbody id="tmplDetailBody" class="divide-y divide-slate-100 bg-white text-slate-700"></tbody>
+          <tbody id="tmplDetailBody" class="divide-y divide-sun-sage/30 bg-white text-sun-navy"></tbody>
         </table>
       </div>
 
       <div class="flex flex-col sm:flex-row items-center gap-2 pt-2">
-        <a href="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/copy" target="_blank" class="w-full py-3 rounded-xl font-extrabold text-xs text-white text-center bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-md">
+        <a href="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/copy" target="_blank" class="w-full py-3 rounded-xl font-extrabold text-xs text-white text-center bg-sun-navy hover:bg-sun-navy/90 shadow-md">
           🚀 Open & Make Copy in Google Sheets
         </a>
-        <button id="tmplDownloadBtn" class="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center gap-1">
+        <button id="tmplDownloadBtn" class="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs text-sun-navy bg-sun-cream hover:bg-sun-peach/40 border border-sun-peach/40 flex items-center justify-center gap-1">
           <span>📥 Download CSV</span>
         </button>
       </div>
@@ -726,65 +733,65 @@ function callSheetPulse(text, inst, action) {
   </div>
 
   <!-- Real-Time Account Dashboard Modal -->
-  <div id="dashboardModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-      <button onclick="closeDashboardModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
+  <div id="dashboardModal" class="fixed inset-0 z-50 bg-sun-navy/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-sun-sage rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeDashboardModal()" class="absolute top-4 right-4 text-sun-navy/50 hover:text-sun-navy text-lg font-bold">✕</button>
 
-      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div class="flex items-center justify-between border-b border-sun-sage/40 pb-3">
         <div>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">Telemetry Portal</span>
-          <h3 class="text-xl font-extrabold text-slate-900 mt-1">📊 Real-Time Account Dashboard</h3>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sun-cream text-sun-navy border border-sun-peach/40">Telemetry Portal</span>
+          <h3 class="text-xl font-extrabold text-sun-navy mt-1">📊 Real-Time Account Dashboard</h3>
         </div>
       </div>
 
       <div class="space-y-2">
         <div class="flex flex-col sm:flex-row items-center gap-2">
-          <input id="dashSearchKey" type="text" placeholder="Enter your sp_... or gsk_... API key" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500">
-          <button onclick="fetchDashboardStats()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-1">
+          <input id="dashSearchKey" type="text" placeholder="Enter your sp_... or gsk_... API key" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3.5 py-2.5 text-xs font-mono focus:outline-none focus:border-sun-peach">
+          <button onclick="fetchDashboardStats()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl font-extrabold text-xs text-white bg-sun-navy hover:bg-sun-navy/90 transition-all flex items-center justify-center gap-1">
             <span>Fetch Stats</span>
           </button>
         </div>
-        <button id="instantTestBtn" onclick="runDirectDashboardTest()" class="w-full py-2.5 rounded-xl text-xs font-extrabold text-emerald-950 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition-all flex items-center justify-center gap-1.5">
+        <button id="instantTestBtn" onclick="runDirectDashboardTest()" class="w-full py-2.5 rounded-xl text-xs font-extrabold text-sun-navy bg-sun-cream hover:bg-sun-peach/40 border border-sun-peach/40 transition-all flex items-center justify-center gap-1.5">
           <span>⚡</span> <span>Run 1-Click Test & Auto-Refresh Log</span>
         </button>
       </div>
 
       <div id="dashStatsContainer" class="space-y-5">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
-            <p class="text-[11px] text-slate-500 font-semibold">Account Tier</p>
-            <p id="dashTier" class="text-sm sm:text-base font-extrabold text-slate-900">FREE</p>
+          <div class="p-3.5 rounded-2xl bg-sun-sand/60 border border-sun-sage text-center space-y-1">
+            <p class="text-[11px] text-sun-navy/60 font-semibold">Account Tier</p>
+            <p id="dashTier" class="text-sm sm:text-base font-extrabold text-sun-navy">FREE</p>
           </div>
-          <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-1">
-            <p class="text-[11px] text-emerald-800 font-semibold">Credits Left</p>
-            <p id="dashCreditsLeft" class="text-sm sm:text-base font-black text-emerald-700">100</p>
+          <div class="p-3.5 rounded-2xl bg-sun-cream/60 border border-sun-peach/40 text-center space-y-1">
+            <p class="text-[11px] text-sun-navy font-semibold">Credits Left</p>
+            <p id="dashCreditsLeft" class="text-sm sm:text-base font-black text-sun-navy">100</p>
           </div>
-          <div class="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-center space-y-1">
-            <p class="text-[11px] text-indigo-800 font-semibold">Total Cells Run</p>
-            <p id="dashTotalUsed" class="text-sm sm:text-base font-black text-indigo-700">0</p>
+          <div class="p-3.5 rounded-2xl bg-sun-sage/40 border border-sun-sage text-center space-y-1">
+            <p class="text-[11px] text-sun-navy font-semibold">Total Cells Run</p>
+            <p id="dashTotalUsed" class="text-sm sm:text-base font-black text-sun-blue">0</p>
           </div>
-          <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-1">
-            <p class="text-[11px] text-amber-800 font-semibold">Avg Latency</p>
-            <p id="dashAvgLatency" class="text-sm sm:text-base font-black text-amber-700">0.22s</p>
+          <div class="p-3.5 rounded-2xl bg-sun-sand/80 border border-sun-sage text-center space-y-1">
+            <p class="text-[11px] text-sun-navy/70 font-semibold">Avg Latency</p>
+            <p id="dashAvgLatency" class="text-sm sm:text-base font-black text-sun-navy">0.22s</p>
           </div>
         </div>
 
-        <div class="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 card-shadow">
-          <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+        <div class="p-4 rounded-2xl bg-white border border-sun-sage space-y-2 card-shadow">
+          <div class="flex items-center justify-between text-xs font-bold text-sun-navy">
             <span>Quota Consumption</span>
-            <span id="dashQuotaPercent" class="text-emerald-700 font-mono">0% used</span>
+            <span id="dashQuotaPercent" class="text-sun-peach font-mono">0% used</span>
           </div>
-          <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <div id="dashProgressBar" class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500" style="width: 0%;"></div>
+          <div class="w-full h-2.5 bg-sun-sand rounded-full overflow-hidden">
+            <div id="dashProgressBar" class="h-full bg-gradient-to-r from-sun-peach to-sun-blue transition-all duration-500" style="width: 0%;"></div>
           </div>
         </div>
 
         <!-- Recent Logs Table -->
         <div class="space-y-2">
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-700 font-mono">Recent Execution Audit Logs</p>
-          <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <p class="text-xs font-bold uppercase tracking-wider text-sun-navy font-mono">Recent Execution Audit Logs</p>
+          <div class="overflow-x-auto rounded-xl border border-sun-sage">
             <table class="w-full text-xs font-mono text-left">
-              <thead class="bg-slate-100 text-slate-700 border-b border-slate-200">
+              <thead class="bg-sun-sage/40 text-sun-navy border-b border-sun-sage">
                 <tr>
                   <th class="p-2.5">Action</th>
                   <th class="p-2.5">Provider</th>
@@ -792,8 +799,8 @@ function callSheetPulse(text, inst, action) {
                   <th class="p-2.5">Status</th>
                 </tr>
               </thead>
-              <tbody id="dashLogsBody" class="divide-y divide-slate-100 bg-white">
-                <tr><td colspan="4" class="p-3 text-center text-slate-400">Enter your key above to inspect logs</td></tr>
+              <tbody id="dashLogsBody" class="divide-y divide-sun-sage/30 bg-white">
+                <tr><td colspan="4" class="p-3 text-center text-sun-navy/40">Enter your key above to inspect logs</td></tr>
               </tbody>
             </table>
           </div>
@@ -804,36 +811,36 @@ function callSheetPulse(text, inst, action) {
   </div>
 
   <!-- Razorpay Payment Modal -->
-  <div id="paymentModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
-      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-lg font-bold">✕</button>
+  <div id="paymentModal" class="fixed inset-0 z-50 bg-sun-navy/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-sun-sage rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-sun-navy/50 hover:text-sun-navy text-lg font-bold">✕</button>
       <div>
-        <span id="modalPlanBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Hosted Pro</span>
-        <h3 class="text-xl font-extrabold text-slate-900 mt-1 flex items-baseline justify-between">
+        <span id="modalPlanBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sun-cream text-sun-navy border border-sun-peach/40">Hosted Pro</span>
+        <h3 class="text-xl font-extrabold text-sun-navy mt-1 flex items-baseline justify-between">
           <span id="modalPlanTitle">Hosted Pro Plan</span>
-          <span id="modalPlanPrice" class="text-emerald-600 text-lg font-mono font-bold">₹999/mo</span>
+          <span id="modalPlanPrice" class="text-sun-peach text-lg font-mono font-bold">₹999/mo</span>
         </h3>
       </div>
       <div class="space-y-3 pt-1">
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Your Full Name</label>
-          <input id="modalUser" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs font-mono">
+          <label class="block text-xs font-bold text-sun-navy mb-1">Your Full Name</label>
+          <input id="modalUser" type="text" placeholder="e.g. Mantu Patra" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3 py-2 text-xs font-mono">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Billing Email</label>
-          <input id="modalEmail" type="email" placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs font-mono">
+          <label class="block text-xs font-bold text-sun-navy mb-1">Billing Email</label>
+          <input id="modalEmail" type="email" placeholder="name@company.com" class="w-full bg-sun-sand border border-sun-sage text-sun-navy rounded-xl px-3 py-2 text-xs font-mono">
         </div>
-        <button id="paySubmitBtn" onclick="launchRazorpayCheckout()" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-gradient-to-r from-zinc-950 via-emerald-950 to-black border border-emerald-500/80 hover:border-emerald-400 shadow-md">
+        <button id="paySubmitBtn" onclick="launchRazorpayCheckout()" class="w-full py-3 rounded-xl font-extrabold text-xs text-white bg-sun-navy hover:bg-sun-navy/90 shadow-md">
           ⚡ Proceed to Secure Payment
         </button>
-        <div id="modalOutput" class="hidden p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-mono text-emerald-900 break-all space-y-1"></div>
+        <div id="modalOutput" class="hidden p-3 bg-sun-cream rounded-xl border border-sun-peach/40 text-xs font-mono text-sun-navy break-all space-y-1"></div>
       </div>
     </div>
   </div>
 
   <!-- Footer -->
-  <footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500 font-mono">
-    &copy; 2026 SheetPulse AI Engine &bull; Autonomous Spreadsheet Infrastructure
+  <footer class="border-t border-sun-sage/60 bg-white py-8 text-center text-xs text-sun-navy/60 font-mono">
+    &copy; 2026 SheetPulse AI Engine &bull; Sunburn Color Architecture Edition
   </footer>
 
   <!-- ================= JAVASCRIPT LOGIC ================= -->
@@ -846,7 +853,7 @@ function callSheetPulse(text, inst, action) {
       const toast = document.createElement('div');
       const isSuccess = type === "success";
       toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-xs font-bold border shadow-xl flex items-center gap-2 toast-anim ${
-        isSuccess ? 'bg-slate-900 text-emerald-400 border-emerald-500/60' : 'bg-slate-900 text-rose-400 border-rose-500/60'
+        isSuccess ? 'bg-sun-navy text-sun-peach border-sun-peach/40' : 'bg-sun-navy text-rose-300 border-rose-500/40'
       }`;
       toast.innerHTML = `<span>${isSuccess ? '✓' : '⚠️'}</span> <span>${message}</span>`;
       box.appendChild(toast);
@@ -972,10 +979,10 @@ function callSheetPulse(text, inst, action) {
 
       const tbody = document.getElementById('tmplDetailBody');
       tbody.innerHTML = tmpl.rows.map((r, i) => `
-        <tr class="hover:bg-slate-50 cursor-pointer" onclick="quickCopyText('${r[1]}')">
-          <td class="p-2.5 text-slate-400 bg-slate-50">${i + 2}</td>
-          <td class="p-2.5 border-r border-slate-200">${r[0]}</td>
-          <td class="p-2.5 text-emerald-700 font-bold bg-emerald-50/40 hover:underline">${r[1]}</td>
+        <tr class="hover:bg-sun-sand/40 cursor-pointer" onclick="quickCopyText('${r[1]}')">
+          <td class="p-2.5 text-sun-navy/40 bg-sun-sand/50">${i + 2}</td>
+          <td class="p-2.5 border-r border-sun-sage">${r[0]}</td>
+          <td class="p-2.5 text-sun-navy font-bold bg-sun-cream/40 hover:underline">${r[1]}</td>
         </tr>
       `).join('');
 
@@ -1042,14 +1049,14 @@ function callSheetPulse(text, inst, action) {
           if (data.recent_logs && data.recent_logs.length > 0) {
             tbody.innerHTML = data.recent_logs.map(log => `
               <tr>
-                <td class="p-2.5 font-bold text-emerald-700">${log.action}</td>
-                <td class="p-2.5 text-slate-600">${log.provider}</td>
-                <td class="p-2.5 font-bold">${log.latency}s</td>
-                <td class="p-2.5 text-emerald-600 font-bold">✓ Success</td>
+                <td class="p-2.5 font-bold text-sun-navy">${log.action}</td>
+                <td class="p-2.5 text-sun-navy/70">${log.provider}</td>
+                <td class="p-2.5 font-bold text-sun-blue">${log.latency}s</td>
+                <td class="p-2.5 text-sun-peach font-bold">✓ Success</td>
               </tr>
             `).join('');
           } else {
-            tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-slate-400">No recent activity recorded</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-sun-navy/40">No recent activity recorded</td></tr>';
           }
           showToast("Dashboard synchronized!");
         } else {
@@ -1105,7 +1112,7 @@ function callSheetPulse(text, inst, action) {
       animatedRowData.forEach(r => {
         const cell = document.getElementById('cell-b' + r.id);
         const status = document.getElementById('status-r' + r.id);
-        if (cell) cell.innerHTML = '<span class="text-slate-300 font-normal">--</span>';
+        if (cell) cell.innerHTML = '<span class="text-sun-navy/30 font-normal">--</span>';
         if (status) status.innerText = '-';
       });
 
@@ -1123,10 +1130,10 @@ function callSheetPulse(text, inst, action) {
           setTimeout(() => {
             const cell = document.getElementById('cell-b' + r.id);
             const status = document.getElementById('status-r' + r.id);
-            if (cell) cell.innerHTML = '<span class="text-emerald-700 bg-emerald-50/40 px-1 rounded font-bold">' + r.result + '</span>';
+            if (cell) cell.innerHTML = '<span class="text-sun-navy bg-sun-cream/60 px-1 rounded font-bold">' + r.result + '</span>';
             if (status) {
               status.innerText = '✓ ' + r.time;
-              status.className = 'p-2.5 text-center text-emerald-600 font-mono text-[11px] font-bold';
+              status.className = 'p-2.5 text-center text-sun-peach font-mono text-[11px] font-bold';
             }
           }, 600 + (idx * 200));
         });
@@ -1185,18 +1192,18 @@ function callSheetPulse(text, inst, action) {
       const instruction = document.getElementById('playInstruction').value.trim();
 
       if (!text) {
-        output.innerHTML = '<span class="text-amber-600 font-bold">Please provide input text.</span>';
+        output.innerHTML = '<span class="text-sun-peach font-bold">Please provide input text.</span>';
         return;
       }
 
       btn.disabled = true;
       btn.innerHTML = '<span>⏳ Computing...</span>';
-      output.innerHTML = '<span class="text-slate-400 animate-pulse font-mono">Executing formula...</span>';
+      output.innerHTML = '<span class="text-sun-navy/40 animate-pulse font-mono">Executing formula...</span>';
       telemetry.innerText = 'Calculating';
 
       const startTime = performance.now();
 
-      const activeKey = (userSecretKey && userSecretKey !== "YOUR_API_KEY_HERE" && (userSecretKey.startsWith("sp_") || userSecretKey.startsWith("gsk_"))) 
+      const activeKey = (userSecretKey && userSecretKey !== "YOUR_API_KEY_HERE" && (userSecretKey.startsWith("sp_") || userSecretKey.startsWith("gsk_") || userSecretKey.startsWith("csk-") || userSecretKey.startsWith("sk-"))) 
                         ? userSecretKey 
                         : "sp_demo_live";
 
@@ -1210,8 +1217,8 @@ function callSheetPulse(text, inst, action) {
         const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
 
         if (data.success) {
-          output.innerHTML = '<span class="text-emerald-700 font-bold">' + data.result + '</span>';
-          providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : '⚡ Neural Cloud');
+          output.innerHTML = '<span class="text-sun-navy font-bold">' + data.result + '</span>';
+          providerBadge.innerText = 'Engine: ' + (data.cached ? '⚡ In-Memory Cache' : `⚡ ${data.provider || 'Neural Cloud'}`);
           speedBadge.innerText = 'Latency: ' + elapsed + 's';
           telemetry.innerText = 'Completed';
           showToast("Computed in " + elapsed + "s");
@@ -1264,14 +1271,14 @@ function callSheetPulse(text, inst, action) {
   return json.success ? json.result : "Error: " + (json.detail || "API Error");
 }`;
       codeBox.textContent = newCode;
-      indicator.innerHTML = `Key: <span class="text-emerald-600 font-bold">Active (${key.substring(0, 10)}...)</span>`;
+      indicator.innerHTML = `Key: <span class="text-sun-peach font-bold">Active (${key.substring(0, 10)}...)</span>`;
     }
 
     async function generateFreeKey() {
       const owner = document.getElementById('keyOwner').value.trim() || 'Workspace User';
       const box = document.getElementById('keyResult');
       box.classList.remove('hidden');
-      box.innerHTML = 'Allocating key in Supabase...';
+      box.innerHTML = 'Allocating key in cluster...';
 
       try {
         const res = await fetch('/api/v1/keys/new', {
@@ -1280,7 +1287,7 @@ function callSheetPulse(text, inst, action) {
           body: JSON.stringify({ owner_name: owner, tier: 'free' })
         });
         const data = await res.json();
-        box.innerHTML = '✅ <strong>Your Key:</strong><br><code class="text-slate-900 select-all font-mono font-bold bg-white p-1 border border-emerald-300 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-slate-600">Credits: ' + data.credits + ' | Injected below!</div>';
+        box.innerHTML = '✅ <strong>Your Key:</strong><br><code class="text-sun-navy select-all font-mono font-bold bg-white p-1 border border-sun-peach/50 rounded block my-1">' + data.api_key + '</code><div class="text-[11px] text-sun-navy/70">Credits: ' + data.credits + ' | Injected below!</div>';
         updateCodeBoxWithKey(data.api_key);
         localStorage.setItem('sheetpulse_key', data.api_key);
         showToast("API Key Generated!");
@@ -1332,10 +1339,10 @@ function callSheetPulse(text, inst, action) {
           description: selectedTier.toUpperCase() + " Subscription Key",
           order_id: orderData.order_id,
           prefill: { name: name, email: email },
-          theme: { color: "#10b981" },
+          theme: { color: "#e4a576" },
           handler: async function (response) {
             box.classList.remove('hidden');
-            box.innerHTML = '⏳ Verifying Payment & Generating Key in Supabase...';
+            box.innerHTML = '⏳ Verifying Payment & Generating Key...';
 
             const verifyRes = await fetch('/api/v1/payments/verify-payment', {
               method: 'POST',
@@ -1351,7 +1358,7 @@ function callSheetPulse(text, inst, action) {
             const verifyData = await verifyRes.json();
 
             if (verifyData.success) {
-              box.innerHTML = '🎉 <strong>Payment Successful!</strong><br>Your Key:<br><code class="text-emerald-700 font-bold bg-white border border-emerald-300 p-1.5 rounded block my-1">' + verifyData.api_key + '</code>';
+              box.innerHTML = '🎉 <strong>Payment Successful!</strong><br>Your Key:<br><code class="text-sun-navy font-bold bg-white border border-sun-peach/50 p-1.5 rounded block my-1">' + verifyData.api_key + '</code>';
               updateCodeBoxWithKey(verifyData.api_key);
               localStorage.setItem('sheetpulse_key', verifyData.api_key);
               showToast("Pro Subscription Activated!");

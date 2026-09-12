@@ -13,7 +13,6 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from groq import Groq
 
 # Optional PostgreSQL Driver (Supabase Pooler)
 try:
@@ -25,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="33.0.0",
+    version="34.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -48,7 +47,6 @@ CEREBRAS_API_KEY = sanitize_key(os.getenv("CEREBRAS_API_KEY", ""))
 GROQ_API_KEY = sanitize_key(os.getenv("GROQ_API_KEY", ""))
 OPENROUTER_API_KEY = sanitize_key(os.getenv("OPENROUTER_API_KEY", ""))
 EXPLABS_API_KEY = sanitize_key(os.getenv("EXPLABS_API_KEY", os.getenv("EXPERIENTIAL_API_KEY", "")))
-GEMINI_API_KEY = sanitize_key(os.getenv("GEMINI_API_KEY", ""))
 DATABASE_URL = sanitize_key(os.getenv("DATABASE_URL", ""))
 
 RAZORPAY_KEY_ID = sanitize_key(os.getenv("RAZORPAY_KEY_ID", "rzp_test_SheetPulseDemo"))
@@ -216,7 +214,6 @@ def verify_and_deduct_credits(api_key: str, amount: int = 1) -> Dict[str, Any]:
             if sanitized_key.startswith("gsk_"): provider_tag = "Groq BYOK"
             elif sanitized_key.startswith("xpl_"): provider_tag = "ExperientialLabs BYOK"
             elif sanitized_key.startswith("sk-"): provider_tag = "OpenRouter BYOK"
-            elif sanitized_key.startswith("csk-"): provider_tag = "Cerebras BYOK"
             
             db.execute(
                 "INSERT INTO api_keys VALUES (?, ?, 'byok', 999999, ?, ?)",
@@ -350,13 +347,36 @@ class BatchRequest(BaseModel):
     items: List[ProcessRequest] = Field(..., max_length=100)
     api_key: Optional[str] = Field("")
 
-# ================= EXPERIENTIAL LABS DYNAMIC FREE FILTER =================
+# ================= DYNAMIC MODEL DISCOVERY =================
+
+GROQ_MODELS_CACHE = {"models": [], "expires": 0}
 EXPLABS_FREE_CACHE = {"models": [], "expires": 0}
+
+def get_live_groq_models(key: str) -> List[str]:
+    curr = time.time()
+    if GROQ_MODELS_CACHE["models"] and curr < GROQ_MODELS_CACHE["expires"]:
+        return GROQ_MODELS_CACHE["models"]
+
+    models = []
+    try:
+        r = requests.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {key}"}, timeout=6)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            models = [m["id"] for m in data if "whisper" not in m["id"] and "guard" not in m["id"] and "embed" not in m["id"]]
+    except Exception:
+        pass
+
+    if not models:
+        models = ["groq/compound", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+
+    GROQ_MODELS_CACHE["models"] = models
+    GROQ_MODELS_CACHE["expires"] = curr + 1200
+    return models
 
 def fetch_explabs_strictly_free_models(api_key: str) -> List[str]:
     curr = time.time()
     if EXPLABS_FREE_CACHE["models"] and curr < EXPLABS_FREE_CACHE["expires"]:
-        return EXPLABS_FREE_CACHE["models"]
+        return list(EXPLABS_FREE_CACHE["models"])
 
     free_models = []
     try:
@@ -371,12 +391,11 @@ def fetch_explabs_strictly_free_models(api_key: str) -> List[str]:
                 is_free_flag = item.get("is_free", False) or item.get("free", False)
                 tags = [str(t).lower() for t in item.get("tags", [])]
 
-                # STRICT FREE CHECK: Cost must be 0 or explicitly tagged FREE
                 cost_is_zero = False
                 if isinstance(pricing, dict):
-                    prompt_price = float(pricing.get("prompt", pricing.get("input", 1)))
-                    compl_price = float(pricing.get("completion", pricing.get("output", 1)))
-                    if prompt_price == 0 and compl_price == 0:
+                    p_in = float(pricing.get("prompt", pricing.get("input", 1)))
+                    p_out = float(pricing.get("completion", pricing.get("output", 1)))
+                    if p_in == 0 and p_out == 0:
                         cost_is_zero = True
 
                 if is_free_flag or cost_is_zero or "free" in tags or ":free" in m_id.lower() or "free" in m_id.lower():
@@ -384,125 +403,27 @@ def fetch_explabs_strictly_free_models(api_key: str) -> List[str]:
     except Exception:
         pass
 
-    # Safe verified fallback: in dashboard 'gpt-5.6-luna' carries the verified FREE tag
     if not free_models:
-        free_models = ["gpt-5.6-luna"]
+        free_models = ["laguna-s-2.1-free", "lfm-2.5-2.6b-free", "openrouter-free"]
 
     EXPLABS_FREE_CACHE["models"] = free_models
-    EXPLABS_FREE_CACHE["expires"] = curr + 1200  # Cache for 20 minutes
-    return free_models
+    EXPLABS_FREE_CACHE["expires"] = curr + 1200
+    return list(free_models)
 
-# ================= 4 HARDENED AI CALLERS =================
+# ================= 3 ULTRA-RESILIENT AI CALLERS =================
 
-# 1. Groq Caller (Official SDK - High Quota 14,400 req/day)
+# 1. Groq Engine (Dynamic Live Models)
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = sanitize_key(custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY)
     if not key:
-        raise ValueError("Groq API key not set")
-    
-    client = Groq(api_key=key, timeout=9.0)
-    for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
-        try:
-            res = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-                temperature=0.05,
-                max_tokens=150
-            )
-            out = clean_output(res.choices[0].message.content or "")
-            if out:
-                return out, f"Groq:{model}"
-        except Exception:
-            continue
-    raise ValueError("Groq models unavailable")
+        raise ValueError("Groq API key missing or empty")
 
-# 2. Experiential Labs (STRICTLY FREE-ONLY DYNAMIC ENGINE)
-def _sync_explabs_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = sanitize_key(custom_key if (custom_key and custom_key.startswith("xpl_")) else EXPLABS_API_KEY)
-    if not key:
-        raise ValueError("Experiential Labs key not configured")
-    
-    # Auto-fetch only models that are currently 100% free
-    free_candidates = fetch_explabs_strictly_free_models(key)
-    url = "https://api.experientiallabs.ai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
-    }
-
-    last_err = ""
-    for model in free_candidates:
-        try:
-            payload = {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": usr_prompt}
-                ],
-                "temperature": 0.05,
-                "max_tokens": 150
-            }
-            resp = requests.post(url, headers=headers, json=payload, timeout=9)
-            
-            # If the model became paid today, API returns 402/payment error -> Drop it immediately!
-            if resp.status_code in [402, 403] or "payment" in resp.text.lower() or "credit" in resp.text.lower():
-                if model in EXPLABS_FREE_CACHE["models"]:
-                    EXPLABS_FREE_CACHE["models"].remove(model)
-                last_err = f"Model {model} is no longer free. Dropped from free pool."
-                continue
-
-            if resp.status_code == 200:
-                data = resp.json()
-                out = clean_output(data["choices"][0]["message"]["content"])
-                if out:
-                    return out, f"Experiential:{model} (FREE)"
-            else:
-                last_err = f"HTTP {resp.status_code}: {resp.text[:60]}"
-        except Exception as ex:
-            last_err = str(ex)
-
-    raise ValueError(f"Experiential Labs (Free-only): {last_err or 'No free models available'}")
-
-# 3. OpenRouter Caller (Strictly Free Models Pool)
-def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = sanitize_key(custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY)
-    if not key:
-        raise ValueError("OpenRouter key not configured")
-    
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://sheetpulseai.onrender.com",
-        "X-Title": "SheetPulse AI"
-    }
-    for model in ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free"]:
-        try:
-            payload = {
-                "model": model,
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
-                "temperature": 0.05,
-                "max_tokens": 150
-            }
-            resp = requests.post(url, headers=headers, json=payload, timeout=9)
-            if resp.status_code == 200:
-                data = resp.json()
-                out = clean_output(data["choices"][0]["message"]["content"])
-                if out:
-                    return out, f"OpenRouter:{model.split('/')[-1]}"
-        except Exception:
-            continue
-    raise ValueError("OpenRouter free models exhausted")
-
-# 4. Cerebras Caller
-def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
-    key = sanitize_key(custom_key if (custom_key and custom_key.startswith("csk-")) else CEREBRAS_API_KEY)
-    if not key:
-        raise ValueError("Cerebras key not configured")
-    
-    url = "https://api.cerebras.ai/v1/chat/completions"
+    models = get_live_groq_models(key)
+    url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-    for model in ["llama3.1-8b", "llama-3.3-70b"]:
+
+    errs = []
+    for model in models:
         try:
             payload = {
                 "model": model,
@@ -512,13 +433,88 @@ def _sync_cerebras_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[s
             }
             resp = requests.post(url, headers=headers, json=payload, timeout=8)
             if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"Groq:{model}"
+            else:
+                errs.append(f"{model} -> HTTP {resp.status_code}")
+        except Exception as e:
+            errs.append(f"{model} -> {str(e)}")
+
+    raise ValueError(f"Groq failed: {'; '.join(errs[:3])}")
+
+# 2. Experiential Labs (Strictly Free-Only Engine)
+def _sync_explabs_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = sanitize_key(custom_key if (custom_key and custom_key.startswith("xpl_")) else EXPLABS_API_KEY)
+    if not key:
+        raise ValueError("Experiential Labs key not configured")
+
+    free_candidates = list(fetch_explabs_strictly_free_models(key))
+    url = "https://api.experientiallabs.ai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    errs = []
+    for model in free_candidates:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=8)
+
+            # If model is no longer free, silently drop it from cache
+            if resp.status_code in [402, 403] or "payment" in resp.text.lower() or "credit" in resp.text.lower():
+                if model in EXPLABS_FREE_CACHE["models"]:
+                    EXPLABS_FREE_CACHE["models"].remove(model)
+                errs.append(f"{model} -> Paid/No Access (Dropped)")
+                continue
+
+            if resp.status_code == 200:
                 data = resp.json()
                 out = clean_output(data["choices"][0]["message"]["content"])
                 if out:
-                    return out, f"Cerebras:{model}"
+                    return out, f"Experiential:{model} (FREE)"
+            else:
+                errs.append(f"{model} -> HTTP {resp.status_code}")
+        except Exception as ex:
+            errs.append(f"{model} -> {str(ex)}")
+
+    raise ValueError(f"Experiential Labs: {'; '.join(errs[:3]) or 'All free models unavailable'}")
+
+# 3. OpenRouter Engine (Verified Live)
+def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
+    key = sanitize_key(custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY)
+    if not key:
+        raise ValueError("OpenRouter key not configured")
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sheetpulseai.onrender.com",
+        "X-Title": "SheetPulse AI"
+    }
+    models = ["qwen/qwen-2.5-72b-instruct", "meta-llama/llama-3.3-70b-instruct:free", "google/gemini-2.0-flash-exp:free"]
+    for model in models:
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": usr_prompt}],
+                "temperature": 0.05,
+                "max_tokens": 150
+            }
+            resp = requests.post(url, headers=headers, json=payload, timeout=9)
+            if resp.status_code == 200:
+                res = resp.json()
+                out = clean_output(res["choices"][0]["message"]["content"])
+                if out:
+                    return out, f"OpenRouter:{model.split('/')[-1]}"
         except Exception:
             continue
-    raise ValueError("Cerebras inference unavailable")
+    raise ValueError("OpenRouter free models exhausted")
 
 def resolve_action_prompts(action: str, instruction: str, text: str) -> Tuple[str, str]:
     act = (action or "custom").lower().strip()
@@ -572,16 +568,15 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "33.0.0",
+        "version": "34.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
         "logged_events": log_count,
         "cluster_providers": {
-            "groq": bool(GROQ_API_KEY),
             "openrouter": bool(OPENROUTER_API_KEY),
-            "experiential_labs": bool(EXPLABS_API_KEY),
-            "cerebras": bool(CEREBRAS_API_KEY)
+            "groq": bool(GROQ_API_KEY),
+            "experiential_labs": bool(EXPLABS_API_KEY)
         }
     }
 
@@ -592,21 +587,21 @@ def debug_individual_providers():
     test_usr = "Status check."
     results = {}
 
-    # 1. Test Groq
-    try:
-        out, prov = _sync_groq_call(test_sys, test_usr)
-        results["groq"] = {"status": "success", "provider": prov, "output": out}
-    except Exception as e:
-        results["groq"] = {"status": "failed", "error": str(e)}
-
-    # 2. Test OpenRouter
+    # 1. Test OpenRouter (Primary Verified)
     try:
         out, prov = _sync_openrouter_call(test_sys, test_usr)
         results["openrouter"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["openrouter"] = {"status": "failed", "error": str(e)}
 
-    # 3. Test Experiential Labs (Free Only)
+    # 2. Test Groq
+    try:
+        out, prov = _sync_groq_call(test_sys, test_usr)
+        results["groq"] = {"status": "success", "provider": prov, "output": out}
+    except Exception as e:
+        results["groq"] = {"status": "failed", "error": str(e)}
+
+    # 3. Test Experiential Labs
     try:
         out, prov = _sync_explabs_call(test_sys, test_usr)
         results["experiential_labs"] = {
@@ -621,13 +616,6 @@ def debug_individual_providers():
             "error": str(e),
             "strictly_free_models_found": EXPLABS_FREE_CACHE["models"]
         }
-
-    # 4. Test Cerebras
-    try:
-        out, prov = _sync_cerebras_call(test_sys, test_usr)
-        results["cerebras"] = {"status": "success", "provider": prov, "output": out}
-    except Exception as e:
-        results["cerebras"] = {"status": "failed", "error": str(e)}
 
     return {"diagnostic_report": results}
 
@@ -806,22 +794,15 @@ async def process_cell(req: ProcessRequest):
                 result, provider = await asyncio.to_thread(_sync_openrouter_call, sys_prompt, usr_prompt, effective_key)
             except Exception:
                 pass
-        elif effective_key.startswith("csk-"):
-            try:
-                result, provider = await asyncio.to_thread(_sync_cerebras_call, sys_prompt, usr_prompt, effective_key)
-            except Exception:
-                pass
 
-        # Intelligent Free-Only Fallback Cluster:
-        # [Experiential Free Models -> Groq Free -> OpenRouter Free]
+        # Intelligent Free-Only Fallback Pipeline:
+        # [OpenRouter Free (Verified) -> Groq Dynamic Free -> Experiential Free]
         if not result:
-            pipeline = []
+            pipeline = [_sync_openrouter_call]
+            if GROQ_API_KEY:
+                pipeline.append(_sync_groq_call)
             if EXPLABS_API_KEY:
                 pipeline.append(_sync_explabs_call)
-            pipeline.append(_sync_groq_call)
-            pipeline.append(_sync_openrouter_call)
-            if CEREBRAS_API_KEY:
-                pipeline.append(_sync_cerebras_call)
 
             for engine_func in pipeline:
                 try:

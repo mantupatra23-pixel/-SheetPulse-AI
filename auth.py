@@ -2,8 +2,9 @@ import hashlib
 import time
 import uuid
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, EmailStr
+from main import DBConn, is_byok_key
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -21,25 +22,22 @@ def hash_password(password: str) -> str:
     return hashlib.sha256((password + salt).encode()).hexdigest()
 
 @router.post("/signup")
-def register_user(req: SignupRequest, db_conn_factory):
+def register_user(req: SignupRequest):
     clean_email = req.email.strip().lower()
     hashed_pwd = hash_password(req.password)
     new_api_key = f"sp_{uuid.uuid4().hex[:18]}"
     created_time = time.time()
 
-    with db_conn_factory() as db:
-        # Check if email already registered
+    with DBConn() as db:
         cur = db.execute("SELECT email FROM users WHERE email = ?", (clean_email,))
         if cur.fetchone():
             raise HTTPException(status_code=400, detail="Email is already registered. Please login.")
 
-        # Create user record
         db.execute(
             "INSERT INTO users (email, password_hash, owner_name, created_at) VALUES (?, ?, ?, ?)",
             (clean_email, hashed_pwd, req.owner_name.strip(), created_time)
         )
 
-        # Provision initial free API key with 100 credits
         db.execute(
             "INSERT INTO api_keys (key, owner_name, tier, credits_left, total_used, created_at) VALUES (?, ?, 'free', 100, 0, ?)",
             (new_api_key, req.owner_name.strip(), created_time)
@@ -55,11 +53,11 @@ def register_user(req: SignupRequest, db_conn_factory):
     }
 
 @router.post("/login")
-def login_user(req: LoginRequest, db_conn_factory):
+def login_user(req: LoginRequest):
     clean_email = req.email.strip().lower()
     hashed_pwd = hash_password(req.password)
 
-    with db_conn_factory() as db:
+    with DBConn() as db:
         cur = db.execute("SELECT owner_name, password_hash FROM users WHERE email = ?", (clean_email,))
         user_row = cur.fetchone()
 
@@ -68,12 +66,10 @@ def login_user(req: LoginRequest, db_conn_factory):
 
         owner_name = user_row[0]
 
-        # Fetch active API key for this user/owner
         cur_key = db.execute("SELECT key, tier, credits_left, total_used FROM api_keys WHERE owner_name = ? ORDER BY created_at DESC LIMIT 1", (owner_name,))
         key_row = cur_key.fetchone()
 
         if not key_row:
-            # Fallback provision if key missing
             new_api_key = f"sp_{uuid.uuid4().hex[:18]}"
             db.execute(
                 "INSERT INTO api_keys (key, owner_name, tier, credits_left, total_used, created_at) VALUES (?, ?, 'free', 100, 0, ?)",

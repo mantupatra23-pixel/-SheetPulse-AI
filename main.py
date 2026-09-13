@@ -24,7 +24,7 @@ except ImportError:
 
 app = FastAPI(
     title="SheetPulse AI Enterprise Core",
-    version="34.0.0",
+    version="35.0.0",
     docs_url="/api/swagger",
     redoc_url=None
 )
@@ -143,6 +143,14 @@ def init_db():
                         timestamp DOUBLE PRECISION NOT NULL
                     )
                 """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        email TEXT PRIMARY KEY,
+                        password_hash TEXT NOT NULL,
+                        owner_name TEXT NOT NULL,
+                        created_at DOUBLE PRECISION NOT NULL
+                    )
+                """)
             else:
                 db.execute("""
                     CREATE TABLE IF NOT EXISTS api_keys (
@@ -175,6 +183,14 @@ def init_db():
                         latency REAL,
                         input_length INTEGER,
                         timestamp REAL NOT NULL
+                    )
+                """)
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        email TEXT PRIMARY KEY,
+                        password_hash TEXT NOT NULL,
+                        owner_name TEXT NOT NULL,
+                        created_at REAL NOT NULL
                     )
                 """)
 
@@ -412,7 +428,6 @@ def fetch_explabs_strictly_free_models(api_key: str) -> List[str]:
 
 # ================= 3 ULTRA-RESILIENT AI CALLERS =================
 
-# 1. Groq Engine (Dynamic Live Models)
 def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = sanitize_key(custom_key if (custom_key and custom_key.startswith("gsk_")) else GROQ_API_KEY)
     if not key:
@@ -444,7 +459,6 @@ def _sync_groq_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] 
 
     raise ValueError(f"Groq failed: {'; '.join(errs[:3])}")
 
-# 2. Experiential Labs (Strictly Free-Only Engine)
 def _sync_explabs_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = sanitize_key(custom_key if (custom_key and custom_key.startswith("xpl_")) else EXPLABS_API_KEY)
     if not key:
@@ -465,7 +479,6 @@ def _sync_explabs_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[st
             }
             resp = requests.post(url, headers=headers, json=payload, timeout=8)
 
-            # If model is no longer free, silently drop it from cache
             if resp.status_code in [402, 403] or "payment" in resp.text.lower() or "credit" in resp.text.lower():
                 if model in EXPLABS_FREE_CACHE["models"]:
                     EXPLABS_FREE_CACHE["models"].remove(model)
@@ -484,7 +497,6 @@ def _sync_explabs_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[st
 
     raise ValueError(f"Experiential Labs: {'; '.join(errs[:3]) or 'All free models unavailable'}")
 
-# 3. OpenRouter Engine (Verified Live)
 def _sync_openrouter_call(sys_prompt: str, usr_prompt: str, custom_key: Optional[str] = None) -> Tuple[str, str]:
     key = sanitize_key(custom_key if (custom_key and (custom_key.startswith("sk-or-") or custom_key.startswith("sk-"))) else OPENROUTER_API_KEY)
     if not key:
@@ -568,7 +580,7 @@ def health_metrics():
     return {
         "status": "online",
         "service": "SheetPulse AI Enterprise Core",
-        "version": "34.0.0",
+        "version": "35.0.0",
         "database": "Supabase (PostgreSQL)" if IS_POSTGRES else "Local (SQLite)",
         "active_keys": u_count,
         "total_cells_processed": total_exec,
@@ -580,28 +592,24 @@ def health_metrics():
         }
     }
 
-# --- ISOLATED PROVIDER DIAGNOSTIC ENDPOINT ---
 @app.get("/api/v1/debug/providers")
 def debug_individual_providers():
     test_sys = "Output ONLY the word 'OK'."
     test_usr = "Status check."
     results = {}
 
-    # 1. Test OpenRouter (Primary Verified)
     try:
         out, prov = _sync_openrouter_call(test_sys, test_usr)
         results["openrouter"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["openrouter"] = {"status": "failed", "error": str(e)}
 
-    # 2. Test Groq
     try:
         out, prov = _sync_groq_call(test_sys, test_usr)
         results["groq"] = {"status": "success", "provider": prov, "output": out}
     except Exception as e:
         results["groq"] = {"status": "failed", "error": str(e)}
 
-    # 3. Test Experiential Labs
     try:
         out, prov = _sync_explabs_call(test_sys, test_usr)
         results["experiential_labs"] = {
@@ -741,7 +749,6 @@ def create_free_api_key(req: KeyGenRequest):
         )
     return {"success": True, "api_key": new_key, "owner": req.owner_name, "credits": initial_credits, "tier": req.tier}
 
-# --- PROCESS CELL PIPELINE ---
 @app.post("/api/v1/process")
 async def process_cell(req: ProcessRequest):
     start_time = time.time()
@@ -778,7 +785,6 @@ async def process_cell(req: ProcessRequest):
     async with CONCURRENCY_SEMAPHORE:
         result, provider = None, None
         
-        # Priority Direct BYOK Routing
         if effective_key.startswith("xpl_"):
             try:
                 result, provider = await asyncio.to_thread(_sync_explabs_call, sys_prompt, usr_prompt, effective_key)
@@ -795,8 +801,6 @@ async def process_cell(req: ProcessRequest):
             except Exception:
                 pass
 
-        # Intelligent Free-Only Fallback Pipeline:
-        # [OpenRouter Free (Verified) -> Groq Dynamic Free -> Experiential Free]
         if not result:
             pipeline = [_sync_openrouter_call]
             if GROQ_API_KEY:
@@ -837,3 +841,6 @@ async def process_batch(batch: BatchRequest):
 
     results = await asyncio.gather(*[worker(item) for item in batch.items])
     return {"success": True, "processed_count": len(results), "data": results}
+
+from auth import router as auth_router
+app.include_router(auth_router)

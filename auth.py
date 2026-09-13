@@ -3,18 +3,18 @@ import time
 import uuid
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from main import DBConn, is_byok_key
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 class SignupRequest(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=150)
     password: str = Field(..., min_length=6, max_length=100)
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=3, max_length=150)
     password: str = Field(..., min_length=6, max_length=100)
 
 def hash_password(password: str) -> str:
@@ -24,6 +24,9 @@ def hash_password(password: str) -> str:
 @router.post("/signup")
 def register_user(req: SignupRequest):
     clean_email = req.email.strip().lower()
+    if "@" not in clean_email or "." not in clean_email:
+        raise HTTPException(status_code=400, detail="Invalid email format.")
+
     hashed_pwd = hash_password(req.password)
     new_api_key = f"sp_{uuid.uuid4().hex[:18]}"
     created_time = time.time()

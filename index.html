@@ -127,7 +127,7 @@
 
   <main class="w-full flex-1">
     
-    <!-- ================= 1. HERO SECTION (2-TONE SUNBURN BACKGROUND) ================= -->
+    <!-- ================= 1. HERO SECTION ================= -->
     <section class="sunburn-hero-bg pt-14 pb-12 px-4 text-center space-y-6">
       <div class="max-w-6xl mx-auto space-y-6">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-white text-sun-navy border border-sun-sage shadow-sm">
@@ -229,6 +229,31 @@
             </div>
           </div>
         </article>
+      </div>
+    </section>
+
+    <!-- ================= AUTHENTICATION WORKSPACE SECTION ================= -->
+    <section class="max-w-6xl mx-auto px-4 py-8">
+      <div id="sheetpulse-auth-container" class="p-6 rounded-3xl bg-white border border-sun-sage card-shadow space-y-4">
+        <div id="auth-logged-out">
+          <h3 class="text-base font-bold text-sun-navy mb-3">🔒 Access Your SheetPulse Workspace</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <input type="text" id="auth-name" placeholder="Your Name" class="bg-sun-sand border border-sun-sage rounded-xl px-3 py-2 text-xs font-mono" />
+            <input type="email" id="auth-email" placeholder="Email Address" class="bg-sun-sand border border-sun-sage rounded-xl px-3 py-2 text-xs font-mono" />
+            <input type="password" id="auth-password" placeholder="Password (min 6 chars)" class="bg-sun-sand border border-sun-sage rounded-xl px-3 py-2 text-xs font-mono" />
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="handleSignup()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition-all">Sign Up (100 Free Credits)</button>
+            <button onclick="handleLogin()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow transition-all">Login</button>
+          </div>
+        </div>
+
+        <div id="auth-logged-in" style="display: none;" class="space-y-2">
+          <h3 class="text-base font-bold text-sun-navy">Welcome back, <span id="user-display-name" class="text-sun-peach"></span>!</h3>
+          <p class="text-xs text-sun-navy/80 font-mono">Active API Key: <code id="user-display-key" class="bg-sun-sand px-2 py-1 rounded text-sun-navy font-bold"></code></p>
+          <p class="text-xs text-sun-navy/80 font-mono">Remaining Credits: <span id="user-display-credits" class="font-bold text-emerald-600"></span> | Tier: <span id="user-display-tier" class="font-bold uppercase text-sun-blue"></span></p>
+          <button onclick="handleLogout()" class="mt-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition-all">Logout</button>
+        </div>
       </div>
     </section>
 
@@ -847,6 +872,7 @@ function callSheetPulse(text, inst, action) {
   <script>
     let userSecretKey = localStorage.getItem('sheetpulse_key') || "YOUR_API_KEY_HERE";
     let selectedTier = "pro";
+    const BACK_HOST = "https://sheetpulseai.onrender.com";
 
     function showToast(message, type = "success") {
       const box = document.getElementById('toastBox');
@@ -1387,6 +1413,100 @@ function callSheetPulse(text, inst, action) {
       navigator.clipboard.writeText(code);
       showToast("Code copied to clipboard!");
     }
+
+    // --- Authentication Flow Logic ---
+    async function handleSignup() {
+      const name = document.getElementById('auth-name').value.trim();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+
+      if (!name || !email || !password) {
+        showToast("Please fill in all auth fields.", "error");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACK_HOST}/api/v1/auth/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ owner_name: name, email: email, password: password })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem("sheetpulse_api_key", data.api_key);
+          localStorage.setItem("sheetpulse_owner", data.owner_name);
+          showToast("Account created successfully!");
+          updateAuthUI(data.owner_name, data.api_key, data.credits, "FREE");
+          updateCodeBoxWithKey(data.api_key);
+        } else {
+          showToast(data.detail || "Signup failed.", "error");
+        }
+      } catch (e) {
+        showToast("Network error: " + e.message, "error");
+      }
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+
+      if (!email || !password) {
+        showToast("Please enter email and password.", "error");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACK_HOST}/api/v1/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: password })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          localStorage.setItem("sheetpulse_api_key", data.api_key);
+          localStorage.setItem("sheetpulse_owner", data.owner_name);
+          showToast("Login successful!");
+          updateAuthUI(data.owner_name, data.api_key, data.credits_left, data.tier);
+          updateCodeBoxWithKey(data.api_key);
+        } else {
+          showToast(data.detail || "Login failed.", "error");
+        }
+      } catch (e) {
+        showToast("Network error: " + e.message, "error");
+      }
+    }
+
+    function updateAuthUI(owner, apiKey, credits, tier) {
+      document.getElementById('auth-logged-out').style.display = 'none';
+      document.getElementById('auth-logged-in').style.display = 'block';
+      document.getElementById('user-display-name').innerText = owner;
+      document.getElementById('user-display-key').innerText = apiKey;
+      document.getElementById('user-display-credits').innerText = credits;
+      document.getElementById('user-display-tier').innerText = tier;
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("sheetpulse_api_key");
+      localStorage.removeItem("sheetpulse_owner");
+      document.getElementById('auth-logged-in').style.display = 'none';
+      document.getElementById('auth-logged-out').style.display = 'block';
+      showToast("Logged out successfully");
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedKey = localStorage.getItem("sheetpulse_api_key") || localStorage.getItem("sheetpulse_key");
+      if (savedKey) {
+        try {
+          const res = await fetch(`${BACK_HOST}/api/v1/dashboard/stats?api_key=${savedKey}`);
+          const data = await res.json();
+          if (res.ok && data.success) {
+            updateAuthUI(data.owner, savedKey, data.credits_left, data.tier);
+          }
+        } catch (e) {
+          console.error("Session restore failed", e);
+        }
+      }
+    });
   </script>
 </body>
 </html>
